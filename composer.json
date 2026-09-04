@@ -1,0 +1,18 @@
+{
+    "name": "gozi/contao-alias-redirect",
+    "description": "Alte Seiten-Aliase bleiben als 301-Weiterleitung erhalten — automatisch beim Umbenennen, sichtbar direkt an der Seite.",
+    "type": "contao-bundle",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "contao/core-bundle": "^5.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "Gozi\\AliasRedirectBundle\\": "src/"
+        }
+    },
+    "extra": {
+        "contao-manager-plugin": "Gozi\\AliasRedirectBundle\\ContaoManager\\Plugin"
+    }
+}
