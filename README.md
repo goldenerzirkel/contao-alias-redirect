@@ -39,16 +39,3 @@ Bundle-Verzeichnis mit `composer require gozi/contao-alias-redirect:@dev`.
 | `src/EventListener/RedirectOnNotFoundListener.php` | `kernel.request` (Priorität 16, nach dem Router): Contao 5 routet unbekannte Pfade bei vorhandener 404-Seite direkt auf deren Catch-all-Route → 301 noch vor dem Controller. Dazu `kernel.exception` (Priorität 100) für Bäume ohne 404-Seite. Sprachpräfix des Pfads (`/de/…`) wird als `_locale` an den URL-Generator gegeben |
 | `contao/dca/tl_page.php` | die zwei Felder |
 | `tests/alias-redirect-suite.php` | Listenlogik, Auflösung gegen die Datenbank, 301 per HTTP |
-
-## Belegt (04.09.2026)
-
-Suite 20/0. Backend-Nutzertest per Browser: Umbenennen legt den alten Alias in die Liste, Versionierung
-trägt das Feld, alter und mittlerer Alias führen per 301 auf den aktuellen, der aktuelle liefert 200.
-Bild: `docs/backend-weiterleitungen.png`.
-
-## Belegt (05.09.2026, pons-contao / Contao 5.7.9 mit gozi-i18nl10n)
-
-Erstinstallation zeigte: mit veröffentlichter 404-Seite fliegt in Contao 5 keine Exception (`Route404Provider`
-matcht `/{_url_fragment}` direkt), der reine `kernel.exception`-Listener griff nie. Seitdem zusätzlich
-`kernel.request`. Per HTTP geprüft: `/de/alt` → 301 `/de/neu`, `/it/alt` → 301 auf die italienische URL,
-`/alt` → 301 auf die Wurzelsprache, `.html` abgestreift, Query erhalten, Ziel 200.
