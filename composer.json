@@ -2,7 +2,17 @@
     "name": "gozi/contao-alias-redirect",
     "description": "Alte Seiten-Aliase bleiben als 301-Weiterleitung erhalten — automatisch beim Umbenennen, sichtbar direkt an der Seite.",
     "type": "contao-bundle",
-    "license": "proprietary",
+    "license": "LGPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Goldener Zirkel",
+            "homepage": "https://goldener-zirkel.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/goldenerzirkel/contao-alias-redirect/issues",
+        "source": "https://github.com/goldenerzirkel/contao-alias-redirect"
+    },
     "require": {
         "php": "^8.2",
         "contao/core-bundle": "^5.3"
