@@ -83,7 +83,8 @@ final class RedirectOnNotFoundListener
         $roots = $this->wurzelnFuer($request->getHost());
         $treffer = null;
         foreach ($this->kandidaten($request->getPathInfo()) as $alias) {
-            $treffer = $this->redirects->finde($alias, $roots) ?? $this->redirects->finde($alias);
+            // Nur die Baeume dieses Hosts: ein Alias, der zu einer anderen Domain gewandert ist, bleibt hier 404.
+            $treffer = $this->redirects->finde($alias, $roots);
             if (null !== $treffer) {
                 break;
             }
