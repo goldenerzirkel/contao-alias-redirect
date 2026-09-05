@@ -3,6 +3,8 @@
 Alte Seiten-Aliase bleiben als **301-Weiterleitung** erhalten — automatisch beim Umbenennen, sichtbar und
 bearbeitbar **direkt an der Seite**, versioniert mit ihr. Kein eigener Navigationspunkt, keine eigene Tabelle.
 
+![Seiteneinstellungen: Seitenalias, Schalter „Keine Weiterleitung anlegen" und die Liste „Weiterleitungen auf diese Seite"](https://raw.githubusercontent.com/goldenerzirkel/contao-alias-redirect/main/docs/seiteneinstellungen-weiterleitungen.png)
+
 ## Was es tut
 
 - **Umbenennen:** Ändert ein Redakteur den Alias, wandert der alte Alias in das Feld
@@ -20,9 +22,13 @@ bearbeitbar **direkt an der Seite**, versioniert mit ihr. Kein eigener Navigatio
 
 ## Einbau
 
-`composer.json` der Installation: Path-Repository auf `bundles/contao-alias-redirect`, dann
-`composer require gozi/contao-alias-redirect:@dev`. Zwei Spalten an `tl_page`
-(`gozi_redirects`, `gozi_noRedirect`) legt `contao:migrate` an.
+```
+composer require gozi/contao-alias-redirect
+```
+
+Contao 5.3 oder neuer, PHP 8.2. Zwei Spalten an `tl_page` (`gozi_redirects`, `gozi_noRedirect`) legt
+`contao:migrate` bzw. der Contao Manager an. Für die Entwicklung geht auch ein Path-Repository auf das
+Bundle-Verzeichnis mit `composer require gozi/contao-alias-redirect:@dev`.
 
 ## Dateien
 
