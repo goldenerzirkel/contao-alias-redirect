@@ -13,17 +13,25 @@ use Doctrine\DBAL\Connection;
 use Gozi\AliasRedirectBundle\Service\AliasRedirects;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
+use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * Laeuft eine Frontend-Anfrage ins Leere, wird der Pfad als alter Alias nachgeschlagen: 301 auf die Seite.
  *
- * Vor Contaos eigener 404-Behandlung (ExceptionConverter 96, PrettyErrorScreen dahinter). Ein echter
- * Alias gewinnt immer — hier landen nur Anfragen, fuer die Contao KEINE Seite gefunden hat.
+ * Zwei Wege, weil Contao 5 unbekannte Pfade auf zwei Arten beantwortet:
+ *  - Hat der Seitenbaum eine veroeffentlichte 404-Seite, matcht der Route404Provider den Pfad DIREKT auf
+ *    deren Catch-all-Route (tl_page.<id>.error_404) — es fliegt keine Exception. Dafuer kernel.request
+ *    (Prioritaet 16: nach dem Router bei 32, vor dem Controller).
+ *  - Ohne 404-Seite wirft Contao PageNotFoundException/NotFoundHttpException. Dafuer kernel.exception
+ *    (Prioritaet 100: vor ExceptionConverter 96 und PrettyErrorScreen).
+ * Ein echter Alias gewinnt immer — hier landen nur Anfragen, fuer die Contao KEINE Seite gefunden hat.
  */
-#[AsEventListener(event: 'kernel.exception', priority: 100)]
+#[AsEventListener(event: 'kernel.request', method: 'onRequest', priority: 16)]
+#[AsEventListener(event: 'kernel.exception', method: 'onException', priority: 100)]
 final class RedirectOnNotFoundListener
 {
     public function __construct(
@@ -35,7 +43,23 @@ final class RedirectOnNotFoundListener
     ) {
     }
 
-    public function __invoke(ExceptionEvent $event): void
+    /** Contao hat den Pfad auf die 404-Seite geroutet (Route404Provider), noch bevor ein Controller laeuft. */
+    public function onRequest(RequestEvent $event): void
+    {
+        if (!$event->isMainRequest()) {
+            return;
+        }
+        $request = $event->getRequest();
+        if (!str_ends_with((string) $request->attributes->get('_route', ''), '.error_404')) {
+            return;
+        }
+        if (null !== ($ziel = $this->weiterleitung($request))) {
+            $event->setResponse($ziel);
+        }
+    }
+
+    /** Kein 404-Seitentyp im Baum: Contao wirft die Not-Found-Exception. */
+    public function onException(ExceptionEvent $event): void
     {
         if (!$event->isMainRequest()) {
             return;
@@ -44,9 +68,16 @@ final class RedirectOnNotFoundListener
         if (!$e instanceof PageNotFoundException && !$e instanceof NotFoundHttpException) {
             return;
         }
-        $request = $event->getRequest();
+        if (null !== ($ziel = $this->weiterleitung($event->getRequest()))) {
+            $event->setResponse($ziel);
+        }
+    }
+
+    /** Pfad als alten Alias nachschlagen; 301 auf die Seite oder null. */
+    private function weiterleitung(Request $request): ?RedirectResponse
+    {
         if ($this->scope->isBackendRequest($request)) {
-            return;
+            return null;
         }
 
         $roots = $this->wurzelnFuer($request->getHost());
@@ -58,28 +89,33 @@ final class RedirectOnNotFoundListener
             }
         }
         if (null === $treffer) {
-            return;
+            return null;
         }
 
         $this->framework->initialize();
         $seite = $this->framework->getAdapter(PageModel::class)->findPublishedById($treffer);
         if (null === $seite) {
-            return;
+            return null;
+        }
+        // Sprache aus dem Pfadpraefix (/de/alter-alias) mitnehmen: die 404-Route traegt sie nicht, und
+        // mehrsprachige URL-Generatoren (z. B. i18nl10n) lesen die Zielsprache aus dem Request.
+        if (null !== ($sprache = $this->praefixSprache($request->getPathInfo()))) {
+            $request->attributes->set('_locale', $sprache);
         }
         try {
             $ziel = $this->urls->generate($seite, [], UrlGeneratorInterface::ABSOLUTE_URL);
         } catch (\Throwable) {
-            return;
+            return null;
         }
         if ('' !== $request->getQueryString()) {
             $ziel .= (str_contains($ziel, '?') ? '&' : '?').$request->getQueryString();
         }
         // Nie auf sich selbst — sonst Schleife.
         if (parse_url($ziel, PHP_URL_PATH) === $request->getPathInfo()) {
-            return;
+            return null;
         }
 
-        $event->setResponse(new RedirectResponse($ziel, 301));
+        return new RedirectResponse($ziel, 301);
     }
 
     /**
@@ -102,6 +138,14 @@ final class RedirectOnNotFoundListener
         }
 
         return array_values(array_unique(array_filter($aus)));
+    }
+
+    /** Sprachpraefix des Pfads (/de/…, /pt-BR/…) oder null. */
+    private function praefixSprache(string $pfad): ?string
+    {
+        $teile = explode('/', trim(rawurldecode($pfad), '/'));
+
+        return \count($teile) > 1 && preg_match('/^[a-z]{2}(-[A-Za-z]{2,4})?$/', $teile[0]) ? $teile[0] : null;
     }
 
     /** @return list<int> Wurzeln, die zu diesem Host gehoeren (oder keinen Host festlegen) */
