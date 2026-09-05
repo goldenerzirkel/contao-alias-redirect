@@ -76,5 +76,22 @@ ok(200 === $code, 'der echte Alias liefert 200 — er gewinnt immer', (string) $
 [$code] = $hole('/zzz-gibt-es-nicht');
 ok(404 === $code, 'Unbekanntes bleibt 404', (string) $code);
 
+echo "\n## Mit veroeffentlichter 404-Seite (Contao wirft dann KEINE Exception — Route tl_page.<id>.error_404)\n";
+// Befund pons-contao 05.09.2026: der Exception-Weg sah nie etwas, wenn die Wurzel eine 404-Seite hat.
+$db->insert('tl_page', ['pid' => $root, 'sorting' => 999997, 'tstamp' => time(), 'title' => 'ZZZ 404', 'alias' => 'zzz-404', 'type' => 'error_404', 'published' => 1]);
+$seite404 = (int) $db->lastInsertId();
+register_shutdown_function(static function () use ($db, $seite404): void { if ($seite404 > 0) { $db->delete('tl_page', ['id' => $seite404]); echo "(aufgeraeumt: 404-Seite #$seite404)\n"; } });
+$c->get('contao.framework')->getAdapter(\Contao\Controller::class);
+// Routen-Cache: die 404-Route entsteht aus tl_page — Cache leeren, damit der Router sie kennt.
+exec('bash clear-cache.sh 2>&1', $o, $rc);
+[$code, $ort] = $hole('/zzz-alias-alt');
+ok(301 === $code && str_contains($ort, '/zzz-alias-neu'), 'MIT 404-Seite: GET /zzz-alias-alt → 301 (Request-Weg)', "$code $ort");
+[$code, $ort] = $hole('/zzz/alias/ordner?x=1');
+ok(301 === $code && str_contains($ort, 'x=1'), 'MIT 404-Seite: Ordner-Alias + Query', "$code $ort");
+[$code] = $hole('/zzz-gibt-es-nicht');
+ok(404 === $code, 'MIT 404-Seite: Unbekanntes liefert die 404-Seite (Status 404)', (string) $code);
+$db->delete('tl_page', ['id' => $seite404]); $seite404 = 0;
+exec('bash clear-cache.sh 2>&1');
+
 echo "\n".str_repeat('=', 50)."\nERGEBNIS: $pass bestanden, $fail fehlgeschlagen\n";
 exit($fail > 0 ? 1 : 0);
