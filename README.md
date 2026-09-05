@@ -30,6 +30,10 @@ Contao 5.3 oder neuer, PHP 8.2. Zwei Spalten an `tl_page` (`gozi_redirects`, `go
 `contao:migrate` bzw. der Contao Manager an. Für die Entwicklung geht auch ein Path-Repository auf das
 Bundle-Verzeichnis mit `composer require gozi/contao-alias-redirect:@dev`.
 
+Redakteursgruppen brauchen in den Benutzergruppen-Einstellungen unter „Erlaubte Felder" für `tl_page`
+die beiden Felder „Weiterleitungen auf diese Seite" und „Keine Weiterleitung anlegen"; Administratoren
+sehen sie immer.
+
 ## Dateien
 
 | Datei | Zweck |
