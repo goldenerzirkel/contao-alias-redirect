@@ -14,6 +14,12 @@ class Plugin implements BundlePluginInterface
 {
     public function getBundles(ParserInterface $parser): array
     {
-        return [BundleConfig::create(GoziAliasRedirectBundle::class)->setLoadAfter([ContaoCoreBundle::class])];
+        return [BundleConfig::create(GoziAliasRedirectBundle::class)->setLoadAfter([
+                    ContaoCoreBundle::class,
+                    // Die DCA-Dateien dieser Bundles setzen tl_news bzw. tl_calendar_events als GANZES Array —
+                    // wer davor lädt, verliert seine Felder (gozi_noRedirect fehlte im News-Formular, 06.09.2026).
+                    'Contao\\NewsBundle\\ContaoNewsBundle',
+                    'Contao\\CalendarBundle\\ContaoCalendarBundle',
+                ])];
     }
 }
