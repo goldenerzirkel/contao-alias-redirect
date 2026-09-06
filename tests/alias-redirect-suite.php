@@ -11,6 +11,7 @@ declare(strict_types=1);
  */
 
 use Contao\ManagerBundle\HttpKernel\ContaoKernel;
+use Gozi\AliasRedirectBundle\Service\AliasIndex;
 use Gozi\AliasRedirectBundle\Service\AliasRedirects;
 use Symfony\Component\Console\Input\ArgvInput;
 
@@ -29,6 +30,7 @@ function ok(bool $cond, string $name, string $detail = ''): void
 }
 
 $svc = new AliasRedirects($db);
+$index = new AliasIndex($db, $svc);
 
 echo "## Listenlogik (ohne Datenbank)\n";
 ok(['alt'] === $svc->mitAltemAlias(null, 'alt', 'neu'), 'leere Liste + alter Alias → [alt]');
@@ -42,7 +44,8 @@ $root = (int) $db->fetchOne("SELECT id FROM tl_page WHERE type = 'root' AND publ
 ok($root > 0, 'eine veroeffentlichte Wurzel gefunden');
 $db->insert('tl_page', ['pid' => $root, 'sorting' => 999999, 'tstamp' => time(), 'title' => 'ZZZ Alias-Test', 'alias' => 'zzz-alias-neu', 'type' => 'regular', 'published' => 1, 'gozi_redirects' => serialize(['zzz-alias-alt', 'zzz/alias/ordner'])]);
 $seite = (int) $db->lastInsertId();
-register_shutdown_function(static function () use ($db, $seite): void { if ($seite > 0) { $db->delete('tl_page', ['id' => $seite]); echo "\n(aufgeraeumt: Testseite #$seite)\n"; } });
+register_shutdown_function(static function () use ($db, $seite, $index): void { if ($seite > 0) { $db->delete('tl_page', ['id' => $seite]); $index->neuAufbauen(); echo "\n(aufgeraeumt: Testseite #$seite)\n"; } });
+$index->neuAufbauen();
 ok($seite > 0, "Testseite #$seite angelegt (alias zzz-alias-neu, Weiterleitungen zzz-alias-alt, zzz/alias/ordner)");
 ok($svc->finde('zzz-alias-alt') === $seite, 'finde(zzz-alias-alt) → Testseite');
 ok($svc->finde('/zzz-alias-alt/') === $seite, 'Schraegstriche stoeren nicht');
@@ -81,6 +84,7 @@ echo "\n## Mit veroeffentlichter 404-Seite (Contao wirft dann KEINE Exception �
 $db->insert('tl_page', ['pid' => $root, 'sorting' => 999997, 'tstamp' => time(), 'title' => 'ZZZ 404', 'alias' => 'zzz-404', 'type' => 'error_404', 'published' => 1]);
 $seite404 = (int) $db->lastInsertId();
 register_shutdown_function(static function () use ($db, $seite404): void { if ($seite404 > 0) { $db->delete('tl_page', ['id' => $seite404]); echo "(aufgeraeumt: 404-Seite #$seite404)\n"; } });
+$index->neuAufbauen();
 $c->get('contao.framework')->getAdapter(\Contao\Controller::class);
 // Routen-Cache: die 404-Route entsteht aus tl_page — Cache leeren, damit der Router sie kennt.
 exec('bash clear-cache.sh 2>&1', $o, $rc);
@@ -90,7 +94,8 @@ ok(301 === $code && str_contains($ort, '/zzz-alias-neu'), 'MIT 404-Seite: GET /z
 ok(301 === $code && str_contains($ort, 'x=1'), 'MIT 404-Seite: Ordner-Alias + Query', "$code $ort");
 [$code] = $hole('/zzz-gibt-es-nicht');
 ok(404 === $code, 'MIT 404-Seite: Unbekanntes liefert die 404-Seite (Status 404)', (string) $code);
-$db->delete('tl_page', ['id' => $seite404]); $seite404 = 0;
+$db->delete('tl_page', ['id' => $seite404]);
+$index->neuAufbauen(); $seite404 = 0;
 exec('bash clear-cache.sh 2>&1');
 
 echo "\n".str_repeat('=', 50)."\nERGEBNIS: $pass bestanden, $fail fehlgeschlagen\n";

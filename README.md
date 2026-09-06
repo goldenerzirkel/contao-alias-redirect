@@ -47,7 +47,29 @@ der Seitentabelle hinzu, sonst ändert sich nichts.
 
 Voraussetzungen: Contao 5.3 oder neuer, PHP 8.2 oder neuer.
 
-### Rechte für Redakteure
+### Entfernte Seiten: 410 statt 404
+
+Eine Seite, die es bewusst nicht mehr gibt, bekommt den Seitentyp **Entfernt (410 Gone)**. Sie bleibt im
+Seitenbaum mit ihrem Alias und ihrer Liste alter Aliase und antwortet unter all diesen Adressen mit
+410 Gone. Suchmaschinen streichen die Adresse dann schneller als bei 404, Besucher sehen die Seite im
+Layout, etwa mit einem Hinweis, wo es weitergeht.
+
+## Index alter Aliase
+
+Die Liste an der Seite bleibt die Wahrheit. Für die Suche bei jeder Anfrage führt das Bundle zusätzlich
+die Tabelle `tl_gozi_alias_redirect` (ein Eintrag je altem Alias, mit Index). Sie wird beim Speichern,
+Löschen und Wiederherstellen einer Seitenversion nachgeführt; `contao:migrate` legt sie an und füllt
+sie. Neu aufbauen, etwa nach einem Import:
+
+```bash
+php bin/console gozi:alias-redirect:rebuild
+```
+
+Mit dem Index prüft das Bundle alte Aliase **vor** dem Router. Nur so wird ein alter Ordner-Alias wie
+`leistungen/alte-seite` weitergeleitet, den Contao sonst als Parameter der Elternseite `leistungen`
+liest. Eine veröffentlichte Seite, die den Alias selbst trägt, gewinnt weiterhin.
+
+## Rechte für Redakteure
 
 Administratoren sehen die neuen Felder sofort. Redakteursgruppen brauchen in den
 **Benutzergruppen** unter **Erlaubte Felder → Seiten** die Freigabe für

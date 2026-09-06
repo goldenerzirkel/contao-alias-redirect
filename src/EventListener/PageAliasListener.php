@@ -8,7 +8,9 @@ use Contao\CoreBundle\DataContainer\PaletteManipulator;
 use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
 use Contao\DataContainer;
 use Contao\Input;
+use Contao\Versions;
 use Doctrine\DBAL\Connection;
+use Gozi\AliasRedirectBundle\Service\AliasIndex;
 use Gozi\AliasRedirectBundle\Service\AliasRedirects;
 
 /**
@@ -23,13 +25,26 @@ final class PageAliasListener
     public function __construct(
         private readonly AliasRedirects $redirects,
         private readonly Connection $db,
+        private readonly AliasIndex $index,
     ) {
     }
 
+    /** @var array<int,string> Alias je Seite beim Laden des Formulars — für „Version wiederherstellen". */
+    private array $aliasVorher = [];
+
     /** Beide Felder hinter dem Alias — in JEDER Palette, die einen Alias hat (regular, forward, root, …). */
     #[AsCallback(table: 'tl_page', target: 'config.onload')]
-    public function felderEinhaengen(): void
+    public function felderEinhaengen(?DataContainer $dc = null): void
     {
+        // Den Alias VOR einer Wiederherstellung merken: Contaos onrestore_version kennt nur die
+        // wiederhergestellten Daten, nicht den Stand davor (terminal42 löscht an dieser Stelle den
+        // Router-Cache — bei uns fehlte der Callback ganz, 06.09.2026).
+        if (null !== $dc && $dc->id) {
+            $alias = $this->db->fetchOne('SELECT alias FROM tl_page WHERE id = ?', [(int) $dc->id]);
+            if (\is_string($alias)) {
+                $this->aliasVorher[(int) $dc->id] = $alias;
+            }
+        }
         foreach ($GLOBALS['TL_DCA']['tl_page']['palettes'] ?? [] as $name => $palette) {
             if ('__selector__' === $name || !\is_string($palette) || !preg_match('/\balias\b/', $palette)) {
                 continue;
@@ -76,6 +91,38 @@ final class PageAliasListener
     {
         if ($dc->id) {
             $this->db->update('tl_page', ['gozi_noRedirect' => 0], ['id' => (int) $dc->id]);
+            $this->index->seiteNeu((int) $dc->id);
         }
+    }
+
+    #[AsCallback(table: 'tl_page', target: 'config.ondelete')]
+    public function beiLoeschen(DataContainer $dc): void
+    {
+        if ($dc->id) {
+            $this->index->seiteWeg((int) $dc->id);
+        }
+    }
+
+    /**
+     * Version wiederherstellen ist ein Alias-Wechsel ohne Formular: der Alias von vorher wandert in die
+     * Liste der wiederhergestellten Fassung, und der Stand wird als neue Version festgehalten.
+     *
+     * @param array<string,mixed> $data die wiederhergestellten Felder
+     */
+    #[AsCallback(table: 'tl_page', target: 'config.onrestore_version')]
+    public function beiWiederherstellung(string $table, int $pid, int $version, array $data): void
+    {
+        $vorher = $this->aliasVorher[$pid] ?? '';
+        $neu = (string) ($data['alias'] ?? '');
+        if ('' !== $vorher && '' !== $neu && $vorher !== $neu) {
+            $liste = $this->redirects->mitAltemAlias($data[AliasRedirects::FELD] ?? null, $vorher, $neu);
+            $this->db->update('tl_page', [AliasRedirects::FELD => serialize($liste), 'tstamp' => time()], ['id' => $pid]);
+            // Als Version festhalten — im Backend; ohne Sitzung (Kommandozeile) bleibt es beim Datensatz.
+            try {
+                (new Versions('tl_page', $pid))->create(true);
+            } catch (\Throwable) {
+            }
+        }
+        $this->index->seiteNeu($pid);
     }
 }

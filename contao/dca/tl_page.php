@@ -20,3 +20,7 @@ $GLOBALS['TL_DCA']['tl_page']['fields']['gozi_redirects'] = [
     'eval' => ['multiple' => true, 'tl_class' => 'clr', 'doNotCopy' => true, 'rgxp' => 'folderalias', 'maxlength' => 255],
     'sql' => ['type' => 'blob', 'notnull' => false],
 ];
+
+// Seitentyp „Entfernt (410 Gone)": Alias und Liste alter Aliase wie bei jeder Seite, dazu Layout und
+// Veröffentlichung. Die Felder gozi_noRedirect/gozi_redirects hängt der onload-Callback hinter den Alias.
+$GLOBALS['TL_DCA']['tl_page']['palettes']['gozi_gone'] = '{title_legend},title,alias,type;{meta_legend},pageTitle,robots,description;{layout_legend:hide},includeLayout;{publish_legend},published,start,stop';
