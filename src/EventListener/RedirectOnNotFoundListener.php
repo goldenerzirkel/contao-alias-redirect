@@ -8,6 +8,8 @@ use Contao\CoreBundle\Exception\PageNotFoundException;
 use Contao\CoreBundle\Framework\ContaoFramework;
 use Contao\CoreBundle\Routing\ContentUrlGenerator;
 use Contao\CoreBundle\Routing\ScopeMatcher;
+use Contao\CalendarEventsModel;
+use Contao\NewsModel;
 use Contao\PageModel;
 use Doctrine\DBAL\Connection;
 use Gozi\AliasRedirectBundle\Service\AliasIndex;
@@ -70,7 +72,7 @@ final class RedirectOnNotFoundListener
         $roots = $this->wurzelnFuer($request->getHost());
         $eintrag = null;
         foreach ($kandidaten as $alias) {
-            $eintrag = $this->index->finde($alias, $roots);
+            $eintrag = $this->index->finde($alias, $roots, ['tl_page']);
             if (null !== $eintrag) {
                 break;
             }
@@ -134,7 +136,7 @@ final class RedirectOnNotFoundListener
             // Nur die Baeume dieses Hosts: ein Alias, der zu einer anderen Domain gewandert ist, bleibt hier 404.
             // Erst der Index (ein Datensatz je Alias), ohne Index die alte Suche ueber die Seiten.
             if ($this->index->vorhanden()) {
-                $eintrag = $this->index->finde($alias, $roots);
+                $eintrag = $this->index->finde($alias, $roots, ['tl_page']);
                 if (null !== $eintrag) {
                     $treffer = $eintrag['pid'];
                     $gone = $eintrag['gone'];
@@ -148,7 +150,9 @@ final class RedirectOnNotFoundListener
             }
         }
         if (null === $treffer) {
-            return null;
+            // Kein Seiten-Alias: das letzte Pfadstueck als Alias einer Nachricht oder eines Termins
+            // („/blog/alter-alias" — die Leseseite hat ihn nicht mehr gefunden und 404 geworfen).
+            return $this->datensatzWeiterleitung($request, $roots);
         }
 
         $this->framework->initialize();
@@ -181,6 +185,50 @@ final class RedirectOnNotFoundListener
             $ziel .= (str_contains($ziel, '?') ? '&' : '?').$request->getQueryString();
         }
         // Nie auf sich selbst — sonst Schleife.
+        if (parse_url($ziel, PHP_URL_PATH) === $request->getPathInfo()) {
+            return null;
+        }
+
+        return new RedirectResponse($ziel, 301);
+    }
+
+    /**
+     * Alter Alias einer Nachricht oder eines Termins: 301 auf die heutige Adresse des Datensatzes.
+     *
+     * @param list<int> $roots
+     */
+    private function datensatzWeiterleitung(Request $request, array $roots): ?Response
+    {
+        if (!$this->index->vorhanden()) {
+            return null;
+        }
+        $teile = explode('/', trim(rawurldecode($request->getPathInfo()), '/'));
+        $letztes = (string) preg_replace('/\.html?$/i', '', (string) end($teile));
+        if ('' === $letztes || \count($teile) < 2) {
+            return null;
+        }
+        $eintrag = $this->index->finde($letztes, $roots, ['tl_news', 'tl_calendar_events']);
+        if (null === $eintrag) {
+            return null;
+        }
+        $this->framework->initialize();
+        $modell = 'tl_news' === $eintrag['quelle']
+            ? $this->framework->getAdapter(NewsModel::class)->findById($eintrag['pid'])
+            : $this->framework->getAdapter(CalendarEventsModel::class)->findById($eintrag['pid']);
+        if (null === $modell || !$modell->published) {
+            return null;
+        }
+        if (null !== ($sprache = $this->praefixSprache($request->getPathInfo()))) {
+            $request->attributes->set('_locale', $sprache);
+        }
+        try {
+            $ziel = $this->urls->generate($modell, [], UrlGeneratorInterface::ABSOLUTE_URL);
+        } catch (\Throwable) {
+            return null;
+        }
+        if ('' !== $request->getQueryString()) {
+            $ziel .= (str_contains($ziel, '?') ? '&' : '?').$request->getQueryString();
+        }
         if (parse_url($ziel, PHP_URL_PATH) === $request->getPathInfo()) {
             return null;
         }

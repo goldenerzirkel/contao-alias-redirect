@@ -29,12 +29,14 @@ class CreateAliasIndexMigration extends AbstractMigration
             CREATE TABLE tl_gozi_alias_redirect (
                 id INT UNSIGNED AUTO_INCREMENT NOT NULL,
                 tstamp INT UNSIGNED DEFAULT 0 NOT NULL,
+                quelle VARCHAR(32) NOT NULL DEFAULT 'tl_page',
                 alias VARCHAR(255) NOT NULL DEFAULT '' COLLATE `utf8mb4_bin`,
                 root INT UNSIGNED DEFAULT 0 NOT NULL,
                 pid INT UNSIGNED DEFAULT 0 NOT NULL,
                 gone TINYINT(1) DEFAULT 0 NOT NULL,
                 INDEX alias (alias),
                 INDEX pid (pid),
+                INDEX quelle_pid (quelle, pid),
                 PRIMARY KEY(id)
             ) DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB ROW_FORMAT = DYNAMIC
             SQL);

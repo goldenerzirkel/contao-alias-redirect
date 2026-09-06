@@ -61,7 +61,7 @@ $dns = (string) $db->fetchOne('SELECT dns FROM tl_page WHERE id = ?', [$root]);
 $host = '' !== $dns ? $dns : 'goldener-zirkel.int';
 $basis = 'https://'.$host;
 $hole = static function (string $pfad) use ($basis): array {
-    $ch = curl_init($basis.$pfad);
+    $ch = curl_init(str_starts_with($pfad, 'http') ? $pfad : $basis.$pfad);
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true, CURLOPT_NOBODY => true, CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => false, CURLOPT_TIMEOUT => 20]);
     $raw = (string) curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
@@ -78,6 +78,29 @@ ok(301 === $code && str_contains($ort, '/zzz-alias-neu') && str_contains($ort, '
 ok(200 === $code, 'der echte Alias liefert 200 — er gewinnt immer', (string) $code);
 [$code] = $hole('/zzz-gibt-es-nicht');
 ok(404 === $code, 'Unbekanntes bleibt 404', (string) $code);
+
+echo "\n## Nachrichten: alter Alias einer News leitet auf die neue Adresse\n";
+$archiv = $db->fetchAssociative('SELECT a.id, a.jumpTo, p.alias AS leseseite FROM tl_news_archive a JOIN tl_page p ON p.id = a.jumpTo WHERE p.published = 1 ORDER BY a.id LIMIT 1');
+if (false === $archiv) {
+    echo "  (kein Nachrichtenarchiv mit Leseseite — Test uebersprungen)\n";
+} else {
+    $db->insert('tl_news', ['pid' => (int) $archiv['id'], 'tstamp' => time(), 'headline' => 'ZZZ News Alias-Test', 'alias' => 'zzz-news-neu', 'date' => time(), 'time' => time(), 'published' => 1, 'gozi_redirects' => serialize(['zzz-news-alt'])]);
+    $news = (int) $db->lastInsertId();
+    register_shutdown_function(static function () use ($db, $news, $index): void { if ($news > 0) { $db->delete('tl_news', ['id' => $news]); $index->neuAufbauen(); echo "(aufgeraeumt: News #$news)\n"; } });
+    $index->neuAufbauen();
+    ok(null !== $index->finde('zzz-news-alt', [], ['tl_news']), 'Index kennt den alten News-Alias');
+    // Der Host der Leseseite, nicht der der ersten Wurzel: eine alte News-Adresse gilt nur in ihrem Baum.
+    $newsDns = (string) $db->fetchOne('SELECT dns FROM tl_page WHERE id = ?', [$svc->rootId((int) $archiv['jumpTo'])]);
+    $holeNews = static function (string $pfad) use ($hole, $basis, $newsDns): array {
+        return '' === $newsDns ? $hole($pfad) : $hole('https://'.$newsDns.$pfad);
+    };
+    [$code, $ort] = $holeNews('/'.$archiv['leseseite'].'/zzz-news-alt?ref=1');
+    ok(301 === $code && str_contains((string) $ort, 'zzz-news-neu') && str_contains((string) $ort, 'ref=1'), 'GET /'.$archiv['leseseite'].'/zzz-news-alt → 301 auf die neue News, Query bleibt', $code.' '.$ort);
+    [$code] = $holeNews('/'.$archiv['leseseite'].'/zzz-news-gibt-es-nicht');
+    ok(404 === $code, 'unbekannter News-Alias bleibt 404', (string) $code);
+    [$code] = $hole('/'.$archiv['leseseite'].'/zzz-news-alt');
+    ok('' === $newsDns || 404 === $code, 'ueber einen fremden Host bleibt der alte News-Alias 404', (string) $code);
+}
 
 echo "\n## Mit veroeffentlichter 404-Seite (Contao wirft dann KEINE Exception — Route tl_page.<id>.error_404)\n";
 // Befund pons-contao 05.09.2026: der Exception-Weg sah nie etwas, wenn die Wurzel eine 404-Seite hat.
