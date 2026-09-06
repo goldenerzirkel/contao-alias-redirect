@@ -20,6 +20,7 @@ class Plugin implements BundlePluginInterface
                     // wer davor lädt, verliert seine Felder (gozi_noRedirect fehlte im News-Formular, 06.09.2026).
                     'Contao\\NewsBundle\\ContaoNewsBundle',
                     'Contao\\CalendarBundle\\ContaoCalendarBundle',
+                    'Contao\\FaqBundle\\ContaoFaqBundle',
                 ])];
     }
 }

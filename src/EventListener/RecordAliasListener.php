@@ -14,7 +14,7 @@ use Gozi\AliasRedirectBundle\Service\AliasIndex;
 use Gozi\AliasRedirectBundle\Service\AliasRedirects;
 
 /**
- * NACHRICHTEN UND TERMINE: dieselbe Mechanik wie an der Seite (PageAliasListener), an tl_news und
+ * NACHRICHTEN, TERMINE UND FAQ: dieselbe Mechanik wie an der Seite (PageAliasListener), an tl_news und
  * tl_calendar_events. Ändert ein Redakteur den Alias einer Nachricht, wandert der alte in die Liste am
  * Datensatz; die alte Adresse „/blog/alter-alias" leitet auf die neue Nachricht. Kai, 06.09.2026:
  * „redirection für news und events ergänzen".
@@ -33,6 +33,7 @@ class RecordAliasListener
 
     #[AsCallback(table: 'tl_news', target: 'config.onload')]
     #[AsCallback(table: 'tl_calendar_events', target: 'config.onload')]
+    #[AsCallback(table: 'tl_faq', target: 'config.onload')]
     public function felderEinhaengen(?DataContainer $dc = null): void
     {
         if (null === $dc) {
@@ -58,6 +59,7 @@ class RecordAliasListener
     /** Nach Contaos eigener Alias-Erzeugung (Priorität 0): der alte Alias wandert über das Formular in die Liste. */
     #[AsCallback(table: 'tl_news', target: 'fields.alias.save', priority: -10)]
     #[AsCallback(table: 'tl_calendar_events', target: 'fields.alias.save', priority: -10)]
+    #[AsCallback(table: 'tl_faq', target: 'fields.alias.save', priority: -10)]
     public function beiAliasWechsel(mixed $value, DataContainer $dc): mixed
     {
         $aktuell = $dc->getCurrentRecord();
@@ -73,6 +75,7 @@ class RecordAliasListener
 
     #[AsCallback(table: 'tl_news', target: 'fields.gozi_redirects.save')]
     #[AsCallback(table: 'tl_calendar_events', target: 'fields.gozi_redirects.save')]
+    #[AsCallback(table: 'tl_faq', target: 'fields.gozi_redirects.save')]
     public function listeBereinigen(mixed $value, DataContainer $dc): mixed
     {
         $aktuellerAlias = (string) (Input::post('alias') ?? ($dc->getCurrentRecord()['alias'] ?? ''));
@@ -83,6 +86,7 @@ class RecordAliasListener
 
     #[AsCallback(table: 'tl_news', target: 'config.onsubmit', priority: -32)]
     #[AsCallback(table: 'tl_calendar_events', target: 'config.onsubmit', priority: -32)]
+    #[AsCallback(table: 'tl_faq', target: 'config.onsubmit', priority: -32)]
     public function nachSpeichern(DataContainer $dc): void
     {
         if ($dc->id) {
@@ -93,6 +97,7 @@ class RecordAliasListener
 
     #[AsCallback(table: 'tl_news', target: 'config.ondelete')]
     #[AsCallback(table: 'tl_calendar_events', target: 'config.ondelete')]
+    #[AsCallback(table: 'tl_faq', target: 'config.ondelete')]
     public function beiLoeschen(DataContainer $dc): void
     {
         if ($dc->id) {
@@ -103,6 +108,7 @@ class RecordAliasListener
     /** @param array<string,mixed> $data */
     #[AsCallback(table: 'tl_news', target: 'config.onrestore_version')]
     #[AsCallback(table: 'tl_calendar_events', target: 'config.onrestore_version')]
+    #[AsCallback(table: 'tl_faq', target: 'config.onrestore_version')]
     public function beiWiederherstellung(string $table, int $pid, int $version, array $data): void
     {
         $vorher = $this->aliasVorher[$table][$pid] ?? '';

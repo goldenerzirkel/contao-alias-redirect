@@ -102,6 +102,21 @@ if (false === $archiv) {
     ok('' === $newsDns || 404 === $code, 'ueber einen fremden Host bleibt der alte News-Alias 404', (string) $code);
 }
 
+echo "\n## FAQ: alter Alias im Index\n";
+if ($db->createSchemaManager()->tablesExist(['tl_faq'])) {
+    $kat = (int) $db->fetchOne('SELECT id FROM tl_faq_category ORDER BY id LIMIT 1');
+    if ($kat > 0) {
+        $db->insert('tl_faq', ['pid' => $kat, 'tstamp' => time(), 'question' => 'ZZZ FAQ Alias-Test', 'alias' => 'zzz-faq-neu', 'answer' => '<p>x</p>', 'published' => 1, 'gozi_redirects' => serialize(['zzz-faq-alt'])]);
+        $faq = (int) $db->lastInsertId();
+        register_shutdown_function(static function () use ($db, $faq, $index): void { if ($faq > 0) { $db->delete('tl_faq', ['id' => $faq]); $index->neuAufbauen(); echo "(aufgeraeumt: FAQ #$faq)\n"; } });
+        $index->neuAufbauen();
+        $e = $index->finde('zzz-faq-alt', [], ['tl_faq']);
+        ok(null !== $e && $e['pid'] === $faq, 'Index kennt den alten FAQ-Alias', json_encode($e));
+    } else {
+        echo "  (keine FAQ-Kategorie — uebersprungen)\n";
+    }
+}
+
 echo "\n## Mit veroeffentlichter 404-Seite (Contao wirft dann KEINE Exception — Route tl_page.<id>.error_404)\n";
 // Befund pons-contao 05.09.2026: der Exception-Weg sah nie etwas, wenn die Wurzel eine 404-Seite hat.
 $db->insert('tl_page', ['pid' => $root, 'sorting' => 999997, 'tstamp' => time(), 'title' => 'ZZZ 404', 'alias' => 'zzz-404', 'type' => 'error_404', 'published' => 1]);

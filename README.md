@@ -54,12 +54,12 @@ Seitenbaum mit ihrem Alias und ihrer Liste alter Aliase und antwortet unter all 
 410 Gone. Suchmaschinen streichen die Adresse dann schneller als bei 404, Besucher sehen die Seite im
 Layout, etwa mit einem Hinweis, wo es weitergeht.
 
-## Nachrichten und Termine
+## Nachrichten, Termine und FAQ
 
-Dieselben zwei Felder stehen an Nachrichten (tl_news) und Terminen (tl_calendar_events) hinter dem Alias.
+Dieselben zwei Felder stehen an Nachrichten (tl_news), Terminen (tl_calendar_events) und FAQ (tl_faq) hinter dem Alias.
 Ändert ein Redakteur den Alias einer Nachricht, wandert der alte in die Liste; die alte Adresse
 `/blog/alter-alias` leitet mit 301 auf die heutige Adresse der Nachricht. Gilt in dem Seitenbaum, in dem
-die Leseseite des Archivs bzw. Kalenders liegt.
+die Leseseite des Archivs, Kalenders bzw. der FAQ-Kategorie liegt.
 
 ## Index alter Aliase
 

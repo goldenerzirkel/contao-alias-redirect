@@ -17,7 +17,7 @@ use Doctrine\DBAL\Connection;
  * Gepflegt in denselben Momenten wie die Liste (speichern, löschen, Version wiederherstellen) und mit
  * `gozi:alias-redirect:rebuild` jederzeit neu aufbaubar.
  *
- * quelle = tl_page | tl_news | tl_calendar_events; pid = id des Datensatzes; root = Wurzel des Baums, in
+ * quelle = tl_page | tl_news | tl_calendar_events | tl_faq; pid = id des Datensatzes; root = Wurzel des Baums, in
  * dem die Adresse gilt (bei Nachrichten und Terminen über die Leseseite des Archivs bzw. Kalenders).
  * Seiten vom Typ „Entfernt (410)" stehen mit gone=1 drin — mit ihrem aktuellen Alias UND ihrer Liste.
  */
@@ -31,6 +31,7 @@ final class AliasIndex
         'tl_page' => null,
         'tl_news' => ['tl_news_archive', 'pid'],
         'tl_calendar_events' => ['tl_calendar', 'pid'],
+        'tl_faq' => ['tl_faq_category', 'pid'],
     ];
 
     private ?bool $vorhanden = null;

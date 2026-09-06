@@ -9,6 +9,7 @@ use Contao\CoreBundle\Framework\ContaoFramework;
 use Contao\CoreBundle\Routing\ContentUrlGenerator;
 use Contao\CoreBundle\Routing\ScopeMatcher;
 use Contao\CalendarEventsModel;
+use Contao\FaqModel;
 use Contao\NewsModel;
 use Contao\PageModel;
 use Doctrine\DBAL\Connection;
@@ -150,7 +151,7 @@ final class RedirectOnNotFoundListener
             }
         }
         if (null === $treffer) {
-            // Kein Seiten-Alias: das letzte Pfadstueck als Alias einer Nachricht oder eines Termins
+            // Kein Seiten-Alias: das letzte Pfadstueck als Alias einer Nachricht, eines Termins oder einer FAQ
             // („/blog/alter-alias" — die Leseseite hat ihn nicht mehr gefunden und 404 geworfen).
             return $this->datensatzWeiterleitung($request, $roots);
         }
@@ -207,14 +208,16 @@ final class RedirectOnNotFoundListener
         if ('' === $letztes || \count($teile) < 2) {
             return null;
         }
-        $eintrag = $this->index->finde($letztes, $roots, ['tl_news', 'tl_calendar_events']);
+        $eintrag = $this->index->finde($letztes, $roots, ['tl_news', 'tl_calendar_events', 'tl_faq']);
         if (null === $eintrag) {
             return null;
         }
         $this->framework->initialize();
-        $modell = 'tl_news' === $eintrag['quelle']
-            ? $this->framework->getAdapter(NewsModel::class)->findById($eintrag['pid'])
-            : $this->framework->getAdapter(CalendarEventsModel::class)->findById($eintrag['pid']);
+        $modell = match ($eintrag['quelle']) {
+            'tl_news' => $this->framework->getAdapter(NewsModel::class)->findById($eintrag['pid']),
+            'tl_calendar_events' => $this->framework->getAdapter(CalendarEventsModel::class)->findById($eintrag['pid']),
+            default => $this->framework->getAdapter(FaqModel::class)->findById($eintrag['pid']),
+        };
         if (null === $modell || !$modell->published) {
             return null;
         }
