@@ -15,6 +15,7 @@ use Contao\PageModel;
 use Doctrine\DBAL\Connection;
 use Gozi\AliasRedirectBundle\Service\AliasIndex;
 use Gozi\AliasRedirectBundle\Service\AliasRedirects;
+use Gozi\AliasRedirectBundle\Service\ManualRedirects;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -47,6 +48,7 @@ final class RedirectOnNotFoundListener
         private readonly ContentUrlGenerator $urls,
         private readonly Connection $db,
         private readonly AliasIndex $index,
+        private readonly ManualRedirects $vonHand,
     ) {
     }
 
@@ -59,27 +61,40 @@ final class RedirectOnNotFoundListener
      */
     public function onEarlyRequest(RequestEvent $event): void
     {
-        if (!$event->isMainRequest() || !$this->index->vorhanden()) {
+        if (!$event->isMainRequest()) {
             return;
         }
         $request = $event->getRequest();
         if ($this->scope->isBackendRequest($request) || str_starts_with($request->getPathInfo(), '/_') || str_starts_with($request->getPathInfo(), '/contao')) {
             return;
         }
+        // Nur mehrteilige Pfade: die Fehlleitung auf die Elternseite braucht ein Elternstueck. Ein Pfad
+        // aus einem Stueck landet zuverlaessig im 404 und wird dort behandelt — das spart eine Abfrage
+        // je Aufruf der Startseiten-Ebene.
+        if (!str_contains(trim($request->getPathInfo(), '/'), '/')) {
+            return;
+        }
         $kandidaten = $this->kandidaten($request->getPathInfo());
         if ([] === $kandidaten) {
             return;
         }
-        $roots = $this->wurzelnFuer($request->getHost());
-        $eintrag = null;
-        foreach ($kandidaten as $alias) {
-            $eintrag = $this->index->finde($alias, $roots, ['tl_page']);
-            if (null !== $eintrag) {
-                break;
-            }
-        }
+        // Von Hand gepflegte Weiterleitungen stehen unter demselben Vorbehalt wie der Index: auch sie
+        // wuerden sonst erst greifen, wenn der Router den Pfad schon auf die Elternseite gelegt hat.
+        $eintrag = $this->vonHand->finde($request->getPathInfo(), $request->getHost());
         if (null === $eintrag) {
-            return;
+            if (!$this->index->vorhanden()) {
+                return;
+            }
+            $roots = $this->wurzelnFuer($request->getHost());
+            foreach ($kandidaten as $alias) {
+                $eintrag = $this->index->finde($alias, $roots, ['tl_page']);
+                if (null !== $eintrag) {
+                    break;
+                }
+            }
+            if (null === $eintrag) {
+                return;
+            }
         }
         // Traegt eine veroeffentlichte Seite den Alias selbst? Dann ist es keine alte Adresse.
         foreach ($kandidaten as $alias) {
@@ -128,6 +143,12 @@ final class RedirectOnNotFoundListener
     {
         if ($this->scope->isBackendRequest($request)) {
             return null;
+        }
+
+        // Von Hand gepflegte Weiterleitungen zuerst: sie sind eine ausdrueckliche Entscheidung und
+        // gelten auch ueber Wurzelgrenzen hinweg, waehrend der Alias-Index an einen Baum gebunden ist.
+        if (null !== ($antwort = $this->vonHandWeiterleitung($request))) {
+            return $antwort;
         }
 
         $roots = $this->wurzelnFuer($request->getHost());
@@ -191,6 +212,57 @@ final class RedirectOnNotFoundListener
         }
 
         return new RedirectResponse($ziel, 301);
+    }
+
+    /** Eintrag aus tl_gozi_redirect: Seite, externe Adresse oder 410. */
+    private function vonHandWeiterleitung(Request $request): ?Response
+    {
+        $eintrag = $this->vonHand->finde($request->getPathInfo(), $request->getHost());
+        if (null === $eintrag) {
+            return null;
+        }
+
+        if (ManualRedirects::ZIEL_GONE === $eintrag['zielTyp']) {
+            $this->vonHand->treffer($eintrag['id']);
+
+            return new Response('Gone', Response::HTTP_GONE, ['Cache-Control' => 'public, max-age=3600']);
+        }
+
+        if (ManualRedirects::ZIEL_URL === $eintrag['zielTyp']) {
+            $ziel = $eintrag['zielUrl'];
+        } else {
+            $this->framework->initialize();
+            $seite = $this->framework->getAdapter(PageModel::class)->findPublishedById($eintrag['zielSeite']);
+            if (null === $seite) {
+                return null;
+            }
+            // Wie beim Alias-Weg: die Zielsprache aus dem Pfadpraefix, sonst die Sprache des Zielbaums —
+            // sonst nimmt ein mehrsprachiger URL-Generator die Standardsprache.
+            $sprache = $this->praefixSprache($request->getPathInfo());
+            if (null === $sprache) {
+                $seite->loadDetails();
+                $sprache = '' !== (string) $seite->rootLanguage ? (string) $seite->rootLanguage : null;
+            }
+            if (null !== $sprache) {
+                $request->attributes->set('_locale', $sprache);
+            }
+            try {
+                $ziel = $this->urls->generate($seite, [], UrlGeneratorInterface::ABSOLUTE_URL);
+            } catch (\Throwable) {
+                return null;
+            }
+        }
+
+        if ('' !== $request->getQueryString()) {
+            $ziel .= (str_contains($ziel, '?') ? '&' : '?').$request->getQueryString();
+        }
+        // Nie auf sich selbst — sonst Schleife.
+        if (parse_url($ziel, PHP_URL_PATH) === $request->getPathInfo() && parse_url($ziel, PHP_URL_HOST) === $request->getHost()) {
+            return null;
+        }
+        $this->vonHand->treffer($eintrag['id']);
+
+        return new RedirectResponse($ziel, $eintrag['code']);
     }
 
     /**

@@ -33,6 +33,44 @@ Suchmaschinen übernehmen damit die Bewertung der alten Adresse auf die neue.
 Trägt eine Seite eine Adresse wieder selbst, gewinnt immer die echte Seite. Es entstehen keine
 Weiterleitungsketten: Alle alten Adressen zeigen direkt auf die aktuelle.
 
+## Die Arbeitsliste: was ins Leere läuft
+
+Im Navigationsbereich **Weiterleitungen** stehen zwei Punkte.
+
+**Ins Leere gelaufen** sammelt jede Adresse, die mit 404 beantwortet wurde — eine Zeile je Adresse und
+Rechnername, mit Zähler, Verweisgeber und Zeitpunkt. Zwei Knöpfe je Zeile:
+
+* **An eine Seite hängen** — der Regelweg. Eine Seite wählen, speichern: die Adresse steht danach im
+  Feld *Weiterleitungen auf diese Seite* dieser Seite, zusammen mit allen anderen alten Adressen. Der
+  Eintrag gilt als erledigt und verschwindet aus der Arbeitsliste.
+* **Eigene Weiterleitung** — für alles, was kein Alias sein kann: ein Ziel in einem anderen Seitenbaum
+  oder auf einer anderen Marke, eine externe Adresse, ein bewusstes 410, oder eine Adresse mit Zeichen,
+  die in keinem Alias vorkommen dürfen (Leerzeichen, Klammern, Prozentzeichen — typisch bei Scannern).
+
+Was gar keine Weiterleitung verdient, bekommt den Haken **Erledigt**.
+
+Nicht protokolliert werden Backend-Aufrufe, Contaos eigene Adressen (`/_…`), fehlende Bilder,
+Stylesheets und Schriften sowie alles außer GET und HEAD. Der Abfrageteil (`?x=1`) wird nicht
+gespeichert — er macht aus einer Adresse beliebig viele und wird beim Weiterleiten ohnehin wieder
+angehängt.
+
+## Eigene Weiterleitungen
+
+**Weiterleitungen** ist die Liste für alles, was sich keiner Seite als Alias zuordnen lässt:
+
+| Feld | Bedeutung |
+|---|---|
+| Alte Adresse | Pfad ohne Rechnernamen und ohne Schrägstrich am Anfang; `.html` wird ignoriert |
+| Rechnername | nur für diesen Host; leer = für alle |
+| Art des Ziels | Seite im Seitenbaum, beliebige Adresse, oder kein Ziel (410 Gone) |
+| Art der Weiterleitung | 301, 302, 303, 307 oder 308 |
+
+Ein passender Rechnername gewinnt gegen einen leeren. Diese Weiterleitungen gelten **vor** den
+Alias-Weiterleitungen an den Seiten — sie sind die ausdrückliche Entscheidung.
+
+Für Weiterleitungen nach **Muster** (reguläre Ausdrücke, Platzhalter) bleibt
+`terminal42/contao-url-rewrite` zuständig; siehe `docs/vergleich-terminal42-url-rewrite.md`.
+
 ## Installation für Administratoren
 
 Im Contao Manager unter **Pakete** nach `gozi/contao-alias-redirect` suchen und installieren, oder auf
@@ -104,7 +142,15 @@ frei werden soll.
 | `src/EventListener/PageAliasListener.php` | Felder in den Paletten; `alias.save` legt den alten Alias in die Liste; Schalter zurücksetzen |
 | `src/EventListener/RedirectOnNotFoundListener.php` | `kernel.request` (Priorität 16) für Bäume mit veröffentlichter 404-Seite, `kernel.exception` (Priorität 100) ohne; Sprachpräfix wird als `_locale` an den URL-Generator gegeben; Suche nur in den Wurzeln des aufgerufenen Hosts |
 | `contao/dca/tl_page.php` | die Felder `gozi_redirects` (Listen-Assistent) und `gozi_noRedirect` |
+| `src/Service/NotFoundLog.php` | Protokoll der 404: was hineingehört, Zusammenfassen je Adresse, Aufräumen |
+| `src/Service/ManualRedirects.php` | Auflösung der von Hand gepflegten Weiterleitungen (Host-Vorrang) |
+| `src/EventListener/RecordNotFoundListener.php` | `kernel.response` (Priorität −64): jede 404-Antwort kommt ins Protokoll — der einzige Punkt, an dem beide 404-Wege von Contao zusammenlaufen |
+| `src/Backend/NotFoundCallbacks.php` | was beim Zuordnen wirklich passiert; `hefteAnSeite()` ist ohne DataContainer aufrufbar und damit prüfbar |
+| `src/Backend/NotFoundOperations.php` | Knöpfe, Zeilen und Übersicht der 404-Liste |
+| `src/Backend/Aus404.php` | Vorbelegung beim Anlegen einer eigenen Weiterleitung, über `default`-Closures im DCA |
+| `contao/dca/tl_gozi_404.php`, `contao/dca/tl_gozi_redirect.php` | Arbeitsliste und Weiterleitungstabelle |
 | `tests/alias-redirect-suite.php` | Listenlogik, Auflösung gegen die Datenbank, 301 per HTTP; Aufruf aus der Projektwurzel einer Installation |
+| `tests/404-liste-suite.php` | Protokoll, Zuordnen an eine Seite, eigene Weiterleitungen, 301/410 per HTTP |
 
 Für die Entwicklung: Path-Repository auf das Bundle-Verzeichnis und
 `composer require gozi/contao-alias-redirect:@dev`.
