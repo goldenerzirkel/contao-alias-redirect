@@ -91,6 +91,9 @@ final class NotFoundCallbacks
         // Der Index ist abgeleitet und muss im selben Moment nachziehen, sonst greift die Weiterleitung
         // erst nach dem naechsten Speichern der Seite.
         $this->index->neu('tl_page', $seitenId);
+        // Wer vorher „beliebige Adresse" gewaehlt hatte, hat einen Eintrag in der eigenen Tabelle
+        // erzeugt. Der gilt VOR den Alias-Weiterleitungen und wuerde die neue Zuordnung uebergehen.
+        $this->db->delete(ManualRedirects::TABELLE, ['aus404' => (int) $satz['id']]);
         $this->log->erledige((int) $satz['id']);
 
         return $seitenId;
@@ -163,5 +166,65 @@ final class NotFoundCallbacks
         if ($id > 0) {
             $this->db->update(NotFoundLog::TABELLE, ['erledigt' => 0, 'redirect' => 0], ['redirect' => $id]);
         }
+    }
+
+    /**
+     * Ziel „beliebige Adresse" oder „kein Ziel" — beides kann kein Alias sein.
+     *
+     * Ein Alias zeigt immer auf eine Seite DIESER Installation; eine fremde Adresse und ein bewusstes
+     * 410 brauchen deshalb einen Eintrag in der eigenen Tabelle. Der Redakteur merkt davon nichts: er
+     * bleibt in der 404-Maske, der Eintrag entsteht hier.
+     */
+    #[AsCallback(table: 'tl_gozi_404', target: 'config.onsubmit')]
+    public function uebernehmeEigenesZiel(DataContainer $dc): void
+    {
+        $this->schreibeEigeneWeiterleitung((int) ($dc->id ?? 0));
+    }
+
+    /**
+     * Der Kern davon, ohne DataContainer — aus der Testsuite heraus aufrufbar.
+     *
+     * @return int id der Weiterleitung (0 = keine angelegt)
+     */
+    public function schreibeEigeneWeiterleitung(int $logId): int
+    {
+        if ($logId < 1) {
+            return 0;
+        }
+        $satz = $this->db->fetchAssociative('SELECT * FROM '.NotFoundLog::TABELLE.' WHERE id = ?', [$logId]);
+        if (false === $satz) {
+            return 0;
+        }
+        $typ = (string) ($satz['zielTyp'] ?? ManualRedirects::ZIEL_SEITE);
+        if (ManualRedirects::ZIEL_SEITE === $typ) {
+            return 0; // den Alias-Weg erledigt der save_callback am Seitenfeld
+        }
+        $ziel = trim((string) ($satz['zielUrl'] ?? ''));
+        if (ManualRedirects::ZIEL_URL === $typ && '' === $ziel) {
+            return 0; // beim Umschalten der Auswahl ist das Feld noch leer
+        }
+
+        $daten = [
+            'tstamp' => time(),
+            'aktiv' => 1,
+            'pfad' => (string) $satz['pfad'],
+            'host' => (string) $satz['host'],
+            'zielTyp' => $typ,
+            'zielSeite' => 0,
+            'zielUrl' => ManualRedirects::ZIEL_URL === $typ ? $ziel : '',
+            'code' => '' !== (string) ($satz['code'] ?? '') ? (string) $satz['code'] : '301',
+            'aus404' => $logId,
+        ];
+
+        $vorhanden = (int) ($satz['redirect'] ?? 0);
+        if ($vorhanden > 0 && false !== $this->db->fetchOne('SELECT id FROM '.ManualRedirects::TABELLE.' WHERE id = ?', [$vorhanden])) {
+            $this->db->update(ManualRedirects::TABELLE, $daten, ['id' => $vorhanden]);
+        } else {
+            $this->db->insert(ManualRedirects::TABELLE, $daten);
+            $vorhanden = (int) $this->db->lastInsertId();
+        }
+        $this->log->erledige($logId, $vorhanden);
+
+        return $vorhanden;
     }
 }

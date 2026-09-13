@@ -58,6 +58,7 @@ ok($log->gehoertHinein($anfrage('/unternehmen/alte-seite')), 'normale Adresse: j
 ok(!$log->gehoertHinein($anfrage('/unternehmen/alte-seite', 'POST')), 'POST: nein');
 ok(!$log->gehoertHinein($anfrage('/contao/login')), 'Backend: nein');
 ok(!$log->gehoertHinein($anfrage('/_contao/preview')), 'Contao-Innenleben: nein');
+ok(!$log->gehoertHinein($anfrage('/.well-known/apple-app-site-association')), '.well-known: nein');
 ok(!$log->gehoertHinein($anfrage('/files/layout/stil.css')), 'Stylesheet: nein');
 ok(!$log->gehoertHinein($anfrage('/files/bild.PNG')), 'Bild, auch in Grossbuchstaben: nein');
 ok($log->gehoertHinein($anfrage('/unternehmen/bericht.pdf')), 'PDF: ja (kann eine umgezogene Datei sein)');
@@ -120,6 +121,27 @@ if ('' !== $dns) {
         ok(str_contains($e->getMessage(), $dns), 'Seite aus einem anderen Seitenbaum wird abgewiesen', $e->getMessage());
     }
 }
+
+echo "\n## Externes Ziel aus der 404-Maske\n";
+$extern = $log->erfasse('/'.$marke.'/nach-draussen', '' !== $dns ? $dns : 'example.org');
+$db->update(NotFoundLog::TABELLE, ['zielTyp' => ManualRedirects::ZIEL_URL, 'zielUrl' => 'https://fremd.example/neu', 'code' => '302'], ['id' => $extern]);
+$neu = $callbacks->schreibeEigeneWeiterleitung($extern);
+ok($neu > 0, "Weiterleitung aus dem 404-Eintrag entstanden (#$neu)");
+$w = $db->fetchAssociative('SELECT * FROM '.ManualRedirects::TABELLE.' WHERE id = ?', [$neu]);
+ok(false !== $w && 'https://fremd.example/neu' === $w['zielUrl'] && '302' === (string) $w['code'], 'Adresse und Art der Weiterleitung uebernommen');
+ok(false !== $w && $marke.'/nach-draussen' === $w['pfad'], 'die aufgelaufene Adresse ist die Quelle');
+ok(1 === (int) $db->fetchOne('SELECT erledigt FROM '.NotFoundLog::TABELLE.' WHERE id = ?', [$extern]), '404-Eintrag gilt als erledigt');
+$db->update(NotFoundLog::TABELLE, ['zielUrl' => 'https://fremd.example/korrigiert'], ['id' => $extern]);
+$zweitesMal = $callbacks->schreibeEigeneWeiterleitung($extern);
+ok($zweitesMal === $neu, 'zweites Speichern aendert denselben Eintrag, legt keinen neuen an');
+ok('https://fremd.example/korrigiert' === (string) $db->fetchOne('SELECT zielUrl FROM '.ManualRedirects::TABELLE.' WHERE id = ?', [$neu]), 'die Korrektur ist angekommen');
+$db->update(NotFoundLog::TABELLE, ['zielTyp' => ManualRedirects::ZIEL_GONE], ['id' => $extern]);
+$callbacks->schreibeEigeneWeiterleitung($extern);
+ok(ManualRedirects::ZIEL_GONE === (string) $db->fetchOne('SELECT zielTyp FROM '.ManualRedirects::TABELLE.' WHERE id = ?', [$neu]), 'Wechsel auf „kein Ziel" wird uebernommen');
+$db->update(NotFoundLog::TABELLE, ['zielTyp' => ManualRedirects::ZIEL_URL, 'zielUrl' => ''], ['id' => $extern]);
+ok(0 === $callbacks->schreibeEigeneWeiterleitung($extern), 'leere Adresse legt nichts an (Umschalten der Auswahl)');
+$callbacks->hefteAnSeite($extern, $seite);
+ok(false === $db->fetchOne('SELECT id FROM '.ManualRedirects::TABELLE.' WHERE id = ?', [$neu]), 'Wechsel zurueck auf eine Seite raeumt die eigene Weiterleitung weg');
 
 echo "\n## Eigene Weiterleitungen\n";
 $db->insert(ManualRedirects::TABELLE, ['tstamp' => time(), 'aktiv' => 1, 'pfad' => $marke.'/extern', 'host' => '', 'zielTyp' => ManualRedirects::ZIEL_URL, 'zielUrl' => 'https://example.org/ziel', 'code' => '302']);

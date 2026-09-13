@@ -53,7 +53,9 @@ final class NotFoundLog
         if ('' === trim($pfad, '/')) {
             return false;
         }
-        foreach (['/contao', '/_', '/preview.php', '/api/'] as $anfang) {
+        // .well-known/ ist Maschinenverkehr (Zertifikate, Apple- und Android-App-Verknuepfungen,
+        // security.txt, Passwort-Aenderungspfade). Ein 404 dort ist normal und nie ein Redaktionsfall.
+        foreach (['/contao', '/_', '/preview.php', '/api/', '/.well-known/'] as $anfang) {
             if (str_starts_with($pfad, $anfang)) {
                 return false;
             }
@@ -108,7 +110,9 @@ final class NotFoundLog
     public function erledige(int $id, int $redirectId = 0): void
     {
         if ($this->vorhanden() && $id > 0) {
-            $this->db->update(self::TABELLE, ['erledigt' => 1, 'redirect' => $redirectId, 'tstamp' => time()], ['id' => $id]);
+            // tstamp bleibt unberuehrt: er sagt „zuletzt aufgelaufen", nicht „zuletzt bearbeitet",
+            // und danach ist die Liste sortiert.
+            $this->db->update(self::TABELLE, ['erledigt' => 1, 'redirect' => $redirectId], ['id' => $id]);
         }
     }
 

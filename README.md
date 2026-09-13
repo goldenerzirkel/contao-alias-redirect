@@ -38,25 +38,34 @@ Weiterleitungsketten: Alle alten Adressen zeigen direkt auf die aktuelle.
 Im Navigationsbereich **Weiterleitungen** stehen zwei Punkte.
 
 **Ins Leere gelaufen** sammelt jede Adresse, die mit 404 beantwortet wurde — eine Zeile je Adresse und
-Rechnername, mit Zähler, Verweisgeber und Zeitpunkt. Zwei Knöpfe je Zeile:
+Rechnername, mit Zähler, Verweisgeber und Zeitpunkt. **Ziel festlegen** öffnet eine Maske mit drei
+Möglichkeiten:
 
-* **An eine Seite hängen** — der Regelweg. Eine Seite wählen, speichern: die Adresse steht danach im
-  Feld *Weiterleitungen auf diese Seite* dieser Seite, zusammen mit allen anderen alten Adressen. Der
-  Eintrag gilt als erledigt und verschwindet aus der Arbeitsliste.
-* **Eigene Weiterleitung** — für alles, was kein Alias sein kann: ein Ziel in einem anderen Seitenbaum
-  oder auf einer anderen Marke, eine externe Adresse, ein bewusstes 410, oder eine Adresse mit Zeichen,
-  die in keinem Alias vorkommen dürfen (Leerzeichen, Klammern, Prozentzeichen — typisch bei Scannern).
+* **Seite in diesem System** — der Regelweg. Eine Seite wählen, speichern: die Adresse steht danach im
+  Feld *Weiterleitungen auf diese Seite* dieser Seite, zusammen mit allen anderen alten Adressen.
+* **Beliebige Adresse (extern)** — eine vollständige Adresse, auch auf einem fremden Server, mit
+  wählbarer Art der Weiterleitung (301, 302, 303, 307, 308). Ein Alias kann immer nur auf eine Seite
+  dieser Installation zeigen; im Hintergrund entsteht deshalb ein Eintrag unter *Weiterleitungen*.
+* **Kein Ziel (410 Gone)** — die Adresse ist bewusst weg.
 
-Was gar keine Weiterleitung verdient, bekommt den Haken **Erledigt**.
+In allen drei Fällen gilt der Eintrag danach als erledigt und verschwindet aus der Arbeitsliste. Was
+gar keine Weiterleitung verdient, bekommt den Haken **Erledigt**.
 
-Nicht protokolliert werden Backend-Aufrufe, Contaos eigene Adressen (`/_…`), fehlende Bilder,
-Stylesheets und Schriften sowie alles außer GET und HEAD. Der Abfrageteil (`?x=1`) wird nicht
-gespeichert — er macht aus einer Adresse beliebig viele und wird beim Weiterleiten ohnehin wieder
-angehängt.
+Der Weg über die Seite wird mit Begründung abgelehnt, wenn er nicht tragen kann: die Seite liegt in
+einem Seitenbaum, der zu diesem Rechnernamen nicht gehört; die Adresse enthält Zeichen, die in keinem
+Alias vorkommen dürfen (Leerzeichen, Klammern, Prozentzeichen — typisch bei Scannern); oder sie ist
+der heutige Alias der Seite selbst. Dann bleibt die zweite Möglichkeit.
+
+Nicht protokolliert werden Backend-Aufrufe, Contaos eigene Adressen (`/_…`), `/.well-known/…`
+(Zertifikate, App-Verknüpfungen, `security.txt`), fehlende Bilder, Stylesheets und Schriften sowie
+alles außer GET und HEAD. Der Abfrageteil (`?x=1`) wird nicht gespeichert — er macht aus einer Adresse
+beliebig viele und wird beim Weiterleiten ohnehin wieder angehängt.
 
 ## Eigene Weiterleitungen
 
-**Weiterleitungen** ist die Liste für alles, was sich keiner Seite als Alias zuordnen lässt:
+**Weiterleitungen** ist die Liste für alles, was sich keiner Seite als Alias zuordnen lässt — sie füllt
+sich von selbst, wenn in der 404-Maske eine externe Adresse oder „kein Ziel" gewählt wird, und nimmt
+daneben von Hand angelegte Einträge auf:
 
 | Feld | Bedeutung |
 |---|---|

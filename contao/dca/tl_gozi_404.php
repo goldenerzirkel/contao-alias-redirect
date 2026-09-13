@@ -4,17 +4,20 @@ declare(strict_types=1);
 
 use Contao\DataContainer;
 use Contao\DC_Table;
+use Gozi\AliasRedirectBundle\Service\ManualRedirects;
 
 /*
  * Die ins Leere laufenden Adressen — Arbeitsliste.
  *
  * Eintraege entstehen ausschliesslich beim Auflaufen einer Anfrage (RecordNotFoundListener), deshalb
- * nicht anlegbar. Bearbeitet wird genau ein Feld: die Seite, an die die Adresse gehaengt wird.
+ * nicht anlegbar. Bearbeitet wird nur das Ziel.
  *
- * Der Regelweg ist die Alias-Weiterleitung AN DER SEITE: die Adresse wandert in tl_page.gozi_redirects
- * der gewaehlten Seite. Damit steht an einer Seite, welche alten Adressen auf sie zeigen — an einem Ort,
- * versioniert mit der Seite. Fuer alles, was so nicht geht (externes Ziel, andere Marke, 410, Adresse
- * taugt nicht als Alias), fuehrt der zweite Knopf in die eigene Weiterleitungstabelle.
+ * Drei Ziele, in EINER Maske — der Redakteur soll nicht erst wissen muessen, welches Werkzeug zustaendig ist:
+ *  - Seite im Seitenbaum: die Adresse wandert als alter Alias in tl_page.gozi_redirects dieser Seite.
+ *    Damit steht an einer Seite, welche alten Adressen auf sie zeigen, versioniert mit der Seite.
+ *  - Beliebige Adresse: geht als Alias nicht (ein Alias zeigt immer auf eine Seite dieser Installation),
+ *    deshalb entsteht im Hintergrund ein Eintrag in tl_gozi_redirect.
+ *  - Kein Ziel: 410 Gone, ebenfalls ueber tl_gozi_redirect.
  *
  * Der Haken „erledigt" ist fuer alles, was gar keine Weiterleitung verdient (Scanner, Tippfehler).
  */
@@ -36,22 +39,16 @@ $GLOBALS['TL_DCA']['tl_gozi_404'] = [
     'list' => [
         'sorting' => [
             'mode' => DataContainer::MODE_SORTABLE,
-            'palettes' => [
-        'default' => '{ziel_legend},zielSeite;{quelle_legend},uebersicht',
-    ],
-    'fields' => ['tstamp DESC'],
+            'fields' => ['tstamp DESC'],
             'panelLayout' => 'filter;search,limit',
             'defaultSearchField' => 'pfad',
         ],
         'label' => [
-            'palettes' => [
-        'default' => '{ziel_legend},zielSeite;{quelle_legend},uebersicht',
-    ],
-    'fields' => ['pfad', 'host', 'zaehler', 'tstamp'],
+            'fields' => ['pfad', 'host', 'zaehler', 'tstamp'],
             'showColumns' => true,
         ],
         'operations' => [
-            'anSeite' => [
+            'edit' => [
                 'href' => 'act=edit',
                 'icon' => 'alias.svg',
                 'primary' => true,
@@ -73,7 +70,12 @@ $GLOBALS['TL_DCA']['tl_gozi_404'] = [
         ],
     ],
     'palettes' => [
-        'default' => '{ziel_legend},zielSeite;{quelle_legend},uebersicht',
+        '__selector__' => ['zielTyp'],
+        'default' => '{ziel_legend},zielTyp;{quelle_legend},uebersicht',
+    ],
+    'subpalettes' => [
+        'zielTyp_'.ManualRedirects::ZIEL_SEITE => 'zielSeite',
+        'zielTyp_'.ManualRedirects::ZIEL_URL => 'zielUrl,code',
     ],
     'fields' => [
         'id' => ['sql' => 'int(10) unsigned NOT NULL auto_increment'],
@@ -107,6 +109,14 @@ $GLOBALS['TL_DCA']['tl_gozi_404'] = [
         'uebersicht' => [
             'eval' => ['tl_class' => 'clr'],
         ],
+        'zielTyp' => [
+            'exclude' => true,
+            'inputType' => 'select',
+            'options' => [ManualRedirects::ZIEL_SEITE, ManualRedirects::ZIEL_URL, ManualRedirects::ZIEL_GONE],
+            'reference' => &$GLOBALS['TL_LANG']['tl_gozi_404']['zielTypen'],
+            'eval' => ['submitOnChange' => true, 'tl_class' => 'w50'],
+            'sql' => "varchar(16) NOT NULL default '".ManualRedirects::ZIEL_SEITE."'",
+        ],
         'zielSeite' => [
             'exclude' => true,
             'inputType' => 'pageTree',
@@ -114,6 +124,20 @@ $GLOBALS['TL_DCA']['tl_gozi_404'] = [
             'eval' => ['fieldType' => 'radio', 'tl_class' => 'clr'],
             'sql' => 'int(10) unsigned NOT NULL default 0',
             'relation' => ['type' => 'hasOne', 'load' => 'lazy'],
+        ],
+        'zielUrl' => [
+            'exclude' => true,
+            'inputType' => 'text',
+            'eval' => ['rgxp' => 'url', 'decodeEntities' => true, 'maxlength' => 1022, 'tl_class' => 'clr long'],
+            'sql' => "varchar(1022) NOT NULL default ''",
+        ],
+        'code' => [
+            'exclude' => true,
+            'inputType' => 'select',
+            'options' => ['301', '302', '303', '307', '308'],
+            'reference' => &$GLOBALS['TL_LANG']['tl_gozi_redirect']['codes'],
+            'eval' => ['tl_class' => 'w50'],
+            'sql' => "varchar(3) NOT NULL default '301'",
         ],
         'erledigt' => [
             'toggle' => true,
