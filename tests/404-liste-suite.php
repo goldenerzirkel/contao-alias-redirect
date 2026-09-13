@@ -128,6 +128,17 @@ if (!$uebersetzungen) {
         ok(!\is_array($seitenliste) || !\in_array($marke.'/aus-dem-ausland', $seitenliste, true), 'und NICHT an der Seite — sonst gaelte sie in allen Sprachen');
         ok(1 === (int) $db->fetchOne('SELECT erledigt FROM '.NotFoundLog::TABELLE.' WHERE id = ?', [$mitPraefix]), '404-Eintrag gilt als erledigt');
 
+        // Die Sprache der Wurzel ist KEINE Uebersetzung: sie lebt in tl_page. Sechs der sieben Wurzeln
+        // dieser Installation sind deutsch, waehrend „de" im PONS-Baum eine echte Uebersetzung ist —
+        // ohne diese Unterscheidung landete dort jede „/de/…"-Adresse in der falschen Meldung.
+        $wurzelsprache = (string) $db->fetchOne('SELECT language FROM tl_page WHERE id = ?', [$root]);
+        if ('' !== $wurzelsprache) {
+            $basis = $log->erfasse('/'.$wurzelsprache.'/'.$marke.'/in-der-wurzelsprache', '' !== $dns ? $dns : 'example.org');
+            $callbacks->hefteAnSeite($basis, $seite);
+            $seitenliste = unserialize((string) $db->fetchOne('SELECT '.AliasRedirects::FELD.' FROM tl_page WHERE id = ?', [$seite]), ['allowed_classes' => false]);
+            ok(\is_array($seitenliste) && \in_array($marke.'/in-der-wurzelsprache', $seitenliste, true), 'Adresse in der Wurzelsprache landet an der SEITE, nicht an einer Uebersetzung', print_r($seitenliste, true));
+        }
+
         $ohneUebersetzung = $log->erfasse('/'.$sprache.'/'.$marke.'/ohne-ziel', '' !== $dns ? $dns : 'example.org');
         $db->delete(AliasIndex::UEBERSETZUNG, ['id' => $uebersetzung]);
         try {

@@ -143,11 +143,19 @@ final class NotFoundCallbacks
     }
 
     /**
-     * Traegt der Pfad ein Sprachkuerzel, zu dem es unter dieser Wurzel Uebersetzungen gibt?
+     * Traegt der Pfad ein Sprachkuerzel, zu dem es in DIESEM Baum Uebersetzungen gibt?
      *
-     * Nicht jedes zweibuchstabige erste Segment ist eine Sprache („de-luxe-reisen" waere keine), und
-     * das Praefix der Wurzel selbst (urlPrefix) ist keine Uebersetzung. Deshalb wird gegen die
-     * tatsaechlich vorhandenen Sprachen geprueft.
+     * Drei Faelle, die keine Uebersetzung sind:
+     *  - kein Sprachkuerzel: nicht jedes zweibuchstabige erste Segment ist eine Sprache
+     *    („de-luxe-reisen" waere keine),
+     *  - das Praefix der Wurzel selbst (urlPrefix),
+     *  - die SPRACHE DER WURZEL. Sie lebt in tl_page, nicht in der Uebersetzungstabelle. Sechs der
+     *    sieben Wurzeln dieser Installation sind deutsch, waehrend „de" im PONS-Baum (Wurzelsprache
+     *    „en") eine echte Uebersetzung mit 687 Zeilen ist — ohne diese Unterscheidung landete auf
+     *    Langenscheidt und Klett jede „/de/…"-Adresse in der Meldung „keine Uebersetzung in de",
+     *    obwohl sie schlicht an die Seite gehoert (gemessen 13.09.2026).
+     *
+     * Die Wurzel entscheidet also mit, nicht nur das Pfadsegment.
      */
     private function spracheAus(string $pfad, int $wurzel): ?string
     {
@@ -155,10 +163,18 @@ final class NotFoundCallbacks
         if (\count($teile) < 2 || 1 !== preg_match('/^[a-z]{2}(-[A-Za-z]{2,4})?$/', $teile[0])) {
             return null;
         }
-        $praefix = $wurzel > 0 ? trim((string) $this->db->fetchOne('SELECT urlPrefix FROM tl_page WHERE id = ?', [$wurzel]), '/') : '';
-        if ($teile[0] === $praefix) {
-            return null; // das ist die Adresse der Wurzel selbst, keine Uebersetzung
+        if ($wurzel < 1) {
+            return null;
         }
+        $stamm = $this->db->fetchAssociative('SELECT language, urlPrefix FROM tl_page WHERE id = ?', [$wurzel]);
+        if (false === $stamm) {
+            return null;
+        }
+        if ($teile[0] === trim((string) $stamm['urlPrefix'], '/') || $teile[0] === (string) $stamm['language']) {
+            return null;
+        }
+        // Fuehrt die Installation diese Sprache ueberhaupt als Uebersetzung? Ob die GEWAEHLTE SEITE eine
+        // hat, entscheidet danach hefteAnUebersetzung — mit einer Meldung, die den Redakteur weiterbringt.
         try {
             $gibtEs = $this->db->fetchOne('SELECT id FROM '.AliasIndex::UEBERSETZUNG.' WHERE language = ? LIMIT 1', [$teile[0]]);
         } catch (\Throwable) {
@@ -185,9 +201,20 @@ final class NotFoundCallbacks
     private function aliasAus(string $pfad, int $wurzel): string
     {
         $p = trim($pfad, '/');
-        $praefix = $wurzel > 0 ? trim((string) $this->db->fetchOne('SELECT urlPrefix FROM tl_page WHERE id = ?', [$wurzel]), '/') : '';
-        if ('' !== $praefix && (str_starts_with($p.'/', $praefix.'/'))) {
-            $p = ltrim(substr($p, \strlen($praefix)), '/');
+        if ($wurzel < 1) {
+            return $p;
+        }
+        $stamm = $this->db->fetchAssociative('SELECT language, urlPrefix FROM tl_page WHERE id = ?', [$wurzel]);
+        if (false === $stamm) {
+            return $p;
+        }
+        // Zwei moegliche Praefixe: das der Wurzel (urlPrefix) und das der Wurzelsprache, das
+        // gozi-i18nl10n auch fuer die Basissprache setzt — „/en/service-center/…" liefert im PONS-Baum
+        // 200, obwohl urlPrefix leer ist (gemessen 13.09.2026). Beide gehoeren nicht in den Alias.
+        foreach ([trim((string) $stamm['urlPrefix'], '/'), (string) $stamm['language']] as $praefix) {
+            if ('' !== $praefix && str_starts_with($p.'/', $praefix.'/')) {
+                return ltrim(substr($p, \strlen($praefix)), '/');
+            }
         }
 
         return $p;
