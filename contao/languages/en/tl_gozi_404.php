@@ -26,6 +26,7 @@ $GLOBALS['TL_LANG']['tl_gozi_404']['weiterleiten'] = ['Open in redirects', 'Open
 $GLOBALS['TL_LANG']['tl_gozi_404']['zielFehltSeite'] = 'This page no longer exists.';
 $GLOBALS['TL_LANG']['tl_gozi_404']['zielFremderHost'] = 'The chosen page belongs to "%s", the address ran into nothing on "%s". An alias only applies within its page tree — please create an own redirect instead.';
 $GLOBALS['TL_LANG']['tl_gozi_404']['zielKeinAlias'] = 'The address "%s" cannot be an alias (allowed are letters, digits, dot, hyphen, underscore and slash). Please create an own redirect instead.';
+$GLOBALS['TL_LANG']['tl_gozi_404']['zielOhneUebersetzung'] = 'This page has no translation in "%s". The address belongs to the translation of that language — create it first, or choose "Any address".';
 $GLOBALS['TL_LANG']['tl_gozi_404']['zielIstAlias'] = 'This is the current alias of that page, so the address should be reachable. A redirect will not help here — check publication and page tree instead.';
 $GLOBALS['TL_LANG']['tl_gozi_404']['weiterleitungZeigen'] = 'Edit the redirect for this address';
 $GLOBALS['TL_LANG']['tl_gozi_404']['toggle'] = ['Toggle done', 'Mark entry as done'];

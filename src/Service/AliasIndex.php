@@ -26,9 +26,13 @@ final class AliasIndex
     public const TABELLE = 'tl_gozi_alias_redirect';
     public const TYP_GONE = 'gozi_gone';
 
+    public const UEBERSETZUNG = 'tl_page_i18nl10n';
+
     /** Quelle → [Archivtabelle, Fremdschlüssel] für die Wurzel-Ermittlung über die Leseseite. */
     public const QUELLEN = [
         'tl_page' => null,
+        // Übersetzungen: die Wurzel steht an der übersetzten SEITE (pid), die Sprache am Datensatz.
+        self::UEBERSETZUNG => null,
         'tl_news' => ['tl_news_archive', 'pid'],
         'tl_calendar_events' => ['tl_calendar', 'pid'],
         'tl_faq' => ['tl_faq_category', 'pid'],
@@ -61,27 +65,34 @@ final class AliasIndex
      * Alten Alias nachschlagen — in den Wurzeln des Hosts, wenn welche genannt sind; auf Wunsch nur in
      * bestimmten Quellen (vor dem Router nur Seiten: ein Nachrichten-Alias ist kein Seitenpfad).
      *
+     * Eine Sprache am Eintrag (Übersetzungen) muss zur gesuchten Sprache passen: derselbe alte Alias
+     * kann in zwei Sprachen zu verschiedenen Seiten gehören. Einträge ohne Sprache (tl_page und die
+     * Datensatztabellen) gelten wie bisher für jede Anfrage.
+     *
      * @param list<int>    $rootIds
      * @param list<string> $quellen
      *
-     * @return array{quelle:string, pid:int, gone:bool}|null
+     * @return array{quelle:string, pid:int, gone:bool, sprache:string}|null
      */
-    public function finde(string $alias, array $rootIds = [], array $quellen = []): ?array
+    public function finde(string $alias, array $rootIds = [], array $quellen = [], ?string $sprache = null): ?array
     {
         $alias = trim($alias, '/ ');
         if ('' === $alias || !$this->vorhanden()) {
             return null;
         }
         $zeilen = $this->db->fetchAllAssociative(
-            'SELECT quelle, pid, root, gone FROM '.self::TABELLE.' WHERE alias = ? ORDER BY gone DESC, id',
+            'SELECT quelle, pid, root, gone, sprache FROM '.self::TABELLE.' WHERE alias = ? ORDER BY gone DESC, id',
             [$alias],
         );
         foreach ($zeilen as $z) {
             if ([] !== $quellen && !\in_array((string) $z['quelle'], $quellen, true)) {
                 continue;
             }
+            if ('' !== (string) $z['sprache'] && $z['sprache'] !== $sprache) {
+                continue;
+            }
             if ([] === $rootIds || \in_array((int) $z['root'], $rootIds, true)) {
-                return ['quelle' => (string) $z['quelle'], 'pid' => (int) $z['pid'], 'gone' => 1 === (int) $z['gone']];
+                return ['quelle' => (string) $z['quelle'], 'pid' => (int) $z['pid'], 'gone' => 1 === (int) $z['gone'], 'sprache' => (string) $z['sprache']];
             }
         }
 
@@ -96,9 +107,17 @@ final class AliasIndex
         }
         $this->db->delete(self::TABELLE, ['quelle' => $quelle, 'pid' => $id]);
         $satz = $this->db->fetchAssociative('SELECT * FROM '.$quelle.' WHERE id = ?', [$id]);
-        if (false === $satz || !($satz['published'] ?? 0)) {
+        if (false === $satz) {
             return 0;
         }
+        // Übersetzungen haben ein eigenes Veröffentlichungsfeld; die Seite dazu muss ebenfalls stehen.
+        $veroeffentlicht = self::UEBERSETZUNG === $quelle
+            ? ($satz['i18nl10n_published'] ?? 0) && $this->db->fetchOne('SELECT published FROM tl_page WHERE id = ?', [(int) $satz['pid']])
+            : ($satz['published'] ?? 0);
+        if (!$veroeffentlicht) {
+            return 0;
+        }
+        $sprache = self::UEBERSETZUNG === $quelle ? (string) ($satz['language'] ?? '') : '';
         $gone = 'tl_page' === $quelle && self::TYP_GONE === (string) ($satz['type'] ?? '');
         $aliase = $this->redirects->bereinige($satz[AliasRedirects::FELD] ?? null, $gone ? '' : (string) ($satz['alias'] ?? ''));
         if ($gone && '' !== trim((string) $satz['alias'])) {
@@ -111,7 +130,7 @@ final class AliasIndex
         $root = $this->wurzel($quelle, $satz);
         $n = 0;
         foreach ($aliase as $alias) {
-            $this->db->insert(self::TABELLE, ['tstamp' => time(), 'quelle' => $quelle, 'alias' => $alias, 'root' => $root, 'pid' => $id, 'gone' => $gone ? 1 : 0]);
+            $this->db->insert(self::TABELLE, ['tstamp' => time(), 'quelle' => $quelle, 'alias' => $alias, 'root' => $root, 'pid' => $id, 'gone' => $gone ? 1 : 0, 'sprache' => $sprache]);
             ++$n;
         }
 
@@ -171,6 +190,9 @@ final class AliasIndex
     {
         if ('tl_page' === $quelle) {
             return $this->redirects->rootId((int) $satz['id']);
+        }
+        if (self::UEBERSETZUNG === $quelle) {
+            return $this->redirects->rootId((int) $satz['pid']);
         }
         [$archiv, $schluessel] = self::QUELLEN[$quelle];
         $leseseite = (int) $this->db->fetchOne('SELECT jumpTo FROM '.$archiv.' WHERE id = ?', [(int) ($satz[$schluessel] ?? 0)]);

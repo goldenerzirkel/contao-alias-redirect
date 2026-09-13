@@ -86,8 +86,10 @@ final class RedirectOnNotFoundListener
                 return;
             }
             $roots = $this->wurzelnFuer($request->getHost());
+            $sprache = $this->praefixSprache($request->getPathInfo());
+            $quellen = null !== $sprache ? ['tl_page', AliasIndex::UEBERSETZUNG] : ['tl_page'];
             foreach ($kandidaten as $alias) {
-                $eintrag = $this->index->finde($alias, $roots, ['tl_page']);
+                $eintrag = $this->index->finde($alias, $roots, $quellen, $sprache);
                 if (null !== $eintrag) {
                     break;
                 }
@@ -152,6 +154,14 @@ final class RedirectOnNotFoundListener
         }
 
         $roots = $this->wurzelnFuer($request->getHost());
+
+        // Traegt der Pfad ein Sprachpraefix, zuerst die Uebersetzungen dieser Sprache: ihr Alias ist
+        // ein anderer als der der Seite, und derselbe alte Alias kann in zwei Sprachen zu
+        // verschiedenen Seiten gehoeren.
+        if (null !== ($antwort = $this->uebersetzungsWeiterleitung($request, $roots))) {
+            return $antwort;
+        }
+
         $treffer = null;
         $gone = false;
         foreach ($this->kandidaten($request->getPathInfo()) as $alias) {
@@ -263,6 +273,56 @@ final class RedirectOnNotFoundListener
         $this->vonHand->treffer($eintrag['id']);
 
         return new RedirectResponse($ziel, $eintrag['code']);
+    }
+
+    /**
+     * Alter Alias einer UEBERSETZUNG: 301 auf die heutige Adresse derselben Seite in derselben Sprache.
+     *
+     * Der Alias steht in tl_page_i18nl10n ohne Sprachkuerzel; im Pfad steht es davor. Gesucht wird
+     * deshalb mit dem Pfad OHNE Praefix, und der Treffer muss zur Sprache des Praefixes gehoeren.
+     *
+     * @param list<int> $roots
+     */
+    private function uebersetzungsWeiterleitung(Request $request, array $roots): ?Response
+    {
+        $sprache = $this->praefixSprache($request->getPathInfo());
+        if (null === $sprache || !$this->index->vorhanden()) {
+            return null;
+        }
+        $eintrag = null;
+        foreach ($this->kandidaten($request->getPathInfo()) as $alias) {
+            $eintrag = $this->index->finde($alias, $roots, [AliasIndex::UEBERSETZUNG], $sprache);
+            if (null !== $eintrag) {
+                break;
+            }
+        }
+        if (null === $eintrag) {
+            return null;
+        }
+        $seitenId = (int) $this->db->fetchOne('SELECT pid FROM '.AliasIndex::UEBERSETZUNG.' WHERE id = ?', [$eintrag['pid']]);
+        if ($seitenId < 1) {
+            return null;
+        }
+
+        $this->framework->initialize();
+        $seite = $this->framework->getAdapter(PageModel::class)->findPublishedById($seitenId);
+        if (null === $seite) {
+            return null;
+        }
+        $request->attributes->set('_locale', $sprache);
+        try {
+            $ziel = $this->urls->generate($seite, [], UrlGeneratorInterface::ABSOLUTE_URL);
+        } catch (\Throwable) {
+            return null;
+        }
+        if ('' !== $request->getQueryString()) {
+            $ziel .= (str_contains($ziel, '?') ? '&' : '?').$request->getQueryString();
+        }
+        if (parse_url($ziel, PHP_URL_PATH) === $request->getPathInfo()) {
+            return null;
+        }
+
+        return new RedirectResponse($ziel, 301);
     }
 
     /**

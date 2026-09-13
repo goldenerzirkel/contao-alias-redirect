@@ -16,6 +16,7 @@ $GLOBALS['TL_DCA']['tl_gozi_alias_redirect'] = [
                 'alias' => 'index',
                 'pid' => 'index',
                 'quelle,pid' => 'index',
+                'alias,sprache' => 'index',
             ],
         ],
     ],
@@ -27,5 +28,8 @@ $GLOBALS['TL_DCA']['tl_gozi_alias_redirect'] = [
         'root' => ['sql' => "int(10) unsigned NOT NULL default 0"],
         'pid' => ['sql' => "int(10) unsigned NOT NULL default 0"],
         'gone' => ['sql' => "tinyint(1) NOT NULL default 0"],
+        // Nur bei Uebersetzungen gefuellt: derselbe alte Alias kann in zwei Sprachen zu verschiedenen
+        // Seiten gehoeren. Leer heisst „gilt fuer jede Anfrage" (tl_page, Nachrichten, Termine, FAQ).
+        'sprache' => ['sql' => "varchar(5) NOT NULL default ''"],
     ],
 ];

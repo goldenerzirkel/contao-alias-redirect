@@ -33,6 +33,24 @@ Suchmaschinen übernehmen damit die Bewertung der alten Adresse auf die neue.
 Trägt eine Seite eine Adresse wieder selbst, gewinnt immer die echte Seite. Es entstehen keine
 Weiterleitungsketten: Alle alten Adressen zeigen direkt auf die aktuelle.
 
+## Mehrsprachige Seiten (gozi-i18nl10n)
+
+Eine Übersetzung trägt einen eigenen Alias. Im Sprach-Overlay einer Seite steht hinter dem Seitenpfad
+deshalb dasselbe Feld wie an der Seite selbst: **Weiterleitungen auf diese Übersetzung**. Wird der
+fremdsprachige Alias geändert, kommt der alte automatisch hinein — genau wie bei der Seite.
+
+Die Einträge gelten **nur in ihrer Sprache**: derselbe alte Alias kann in zwei Sprachen zu
+verschiedenen Seiten gehören, der Index hält die Sprache deshalb je Zeile fest. Einträge an der Seite
+(`tl_page`) gelten weiterhin für jede Sprache.
+
+Läuft eine Adresse mit Sprachkürzel ins Leere (`/es/service-center/alte-adresse`), hängt **Ziel
+festlegen** sie von selbst an die Übersetzung dieser Sprache — man wählt nur die Seite. Fehlt die
+Übersetzung, sagt die Maske das und verweist auf „Beliebige Adresse".
+
+Ohne diese Liste ist eine umbenannte fremdsprachige Adresse nicht einfach 404: Contao routet den Pfad
+auf die Elternseite und hängt den Rest als Parameter an, was in einer 301-Kette auf eine Adresse endet,
+die es nicht gibt (gemessen am 13.09.2026).
+
 ## Die Arbeitsliste: was ins Leere läuft
 
 Im Navigationsbereich **Weiterleitungen** stehen zwei Punkte.
@@ -151,6 +169,8 @@ frei werden soll.
 | `src/EventListener/PageAliasListener.php` | Felder in den Paletten; `alias.save` legt den alten Alias in die Liste; Schalter zurücksetzen |
 | `src/EventListener/RedirectOnNotFoundListener.php` | `kernel.request` (Priorität 16) für Bäume mit veröffentlichter 404-Seite, `kernel.exception` (Priorität 100) ohne; Sprachpräfix wird als `_locale` an den URL-Generator gegeben; Suche nur in den Wurzeln des aufgerufenen Hosts |
 | `contao/dca/tl_page.php` | die Felder `gozi_redirects` (Listen-Assistent) und `gozi_noRedirect` |
+| `src/EventListener/TranslationAliasListener.php` | dasselbe an `tl_page_i18nl10n`: Feld in die Palette, alter Alias in die Liste, Index nachziehen |
+| `contao/dca/tl_page_i18nl10n.php` | das Feld `gozi_redirects` am Sprach-Overlay (ohne gozi-i18nl10n wirkungslos) |
 | `src/Service/NotFoundLog.php` | Protokoll der 404: was hineingehört, Zusammenfassen je Adresse, Aufräumen |
 | `src/Service/ManualRedirects.php` | Auflösung der von Hand gepflegten Weiterleitungen (Host-Vorrang) |
 | `src/EventListener/RecordNotFoundListener.php` | `kernel.response` (Priorität −64): jede 404-Antwort kommt ins Protokoll — der einzige Punkt, an dem beide 404-Wege von Contao zusammenlaufen |

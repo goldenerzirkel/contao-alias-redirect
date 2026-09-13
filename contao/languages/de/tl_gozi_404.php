@@ -26,6 +26,7 @@ $GLOBALS['TL_LANG']['tl_gozi_404']['weiterleiten'] = ['In den Weiterleitungen ö
 $GLOBALS['TL_LANG']['tl_gozi_404']['zielFehltSeite'] = 'Diese Seite gibt es nicht mehr.';
 $GLOBALS['TL_LANG']['tl_gozi_404']['zielFremderHost'] = 'Die gewählte Seite gehört zu „%s", die Adresse lief unter „%s" auf. Ein Alias gilt nur innerhalb seines Seitenbaums — dafür bitte eine eigene Weiterleitung anlegen.';
 $GLOBALS['TL_LANG']['tl_gozi_404']['zielKeinAlias'] = 'Die Adresse „%s" taugt nicht als Alias (erlaubt sind Buchstaben, Ziffern, Punkt, Bindestrich, Unterstrich und Schrägstrich). Dafür bitte eine eigene Weiterleitung anlegen.';
+$GLOBALS['TL_LANG']['tl_gozi_404']['zielOhneUebersetzung'] = 'Diese Seite hat keine Übersetzung in „%s". Die Adresse gehört an die Übersetzung dieser Sprache — legen Sie sie zuerst an, oder wählen Sie „Beliebige Adresse".';
 $GLOBALS['TL_LANG']['tl_gozi_404']['zielIstAlias'] = 'Das ist der heutige Alias dieser Seite — die Adresse müsste also erreichbar sein. Hier hilft keine Weiterleitung, sondern ein Blick auf Veröffentlichung und Seitenbaum.';
 $GLOBALS['TL_LANG']['tl_gozi_404']['weiterleitungZeigen'] = 'Die Weiterleitung zu dieser Adresse bearbeiten';
 $GLOBALS['TL_LANG']['tl_gozi_404']['toggle'] = ['Erledigt an/aus', 'Eintrag als erledigt kennzeichnen'];

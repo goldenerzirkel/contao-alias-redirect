@@ -47,6 +47,7 @@ $seite = 0;
 register_shutdown_function(static function () use ($db, &$seite, $marke, $index): void {
     $db->executeStatement('DELETE FROM '.NotFoundLog::TABELLE.' WHERE pfad LIKE ?', [$marke.'%']);
     $db->executeStatement('DELETE FROM '.ManualRedirects::TABELLE.' WHERE pfad LIKE ?', [$marke.'%']);
+    try { $db->executeStatement('DELETE FROM '.AliasIndex::UEBERSETZUNG.' WHERE alias LIKE ?', [$marke.'%']); } catch (\Throwable) {}
     if ($seite > 0) { $db->delete('tl_page', ['id' => $seite]); }
     $index->neuAufbauen();
     echo "\n(aufgeraeumt: $marke)\n";
@@ -96,6 +97,48 @@ ok(\is_array($liste) && \in_array($marke.'/alt', $liste, true), 'Adresse steht a
 ok('' === $praefix || !\in_array($pfadMitPraefix, $liste ?: [], true), 'das Sprachpraefix der Wurzel ist abgeschnitten');
 ok(1 === (int) $db->fetchOne('SELECT erledigt FROM '.NotFoundLog::TABELLE.' WHERE id = ?', [$logId]), '404-Eintrag gilt als erledigt');
 ok(null !== $index->finde($marke.'/alt', [$root], ['tl_page']), 'der Index kennt die Adresse sofort');
+
+echo "\n## Fremdsprachige Adressen gehoeren an die Uebersetzung\n";
+$uebersetzungen = $db->createSchemaManager()->tablesExist([AliasIndex::UEBERSETZUNG]);
+if (!$uebersetzungen) {
+    echo "  (uebersprungen: gozi-i18nl10n ist nicht installiert)\n";
+} else {
+    $sprache = (string) $db->fetchOne('SELECT language FROM '.AliasIndex::UEBERSETZUNG." WHERE language <> '' AND language <> ? LIMIT 1", [(string) $db->fetchOne('SELECT language FROM tl_page WHERE id = ?', [$root])]);
+    if ('' === $sprache) {
+        echo "  (uebersprungen: keine Uebersetzungssprache in dieser Installation)\n";
+    } else {
+        $db->insert(AliasIndex::UEBERSETZUNG, ['pid' => $seite, 'tstamp' => time(), 'language' => $sprache, 'title' => 'ZZZ Uebersetzung', 'alias' => $marke.'-uebersetzt', 'i18nl10n_published' => 1]);
+        $uebersetzung = (int) $db->lastInsertId();
+        $index->neu(AliasIndex::UEBERSETZUNG, $uebersetzung);
+        ok(0 === (int) $db->fetchOne('SELECT COUNT(*) FROM '.AliasIndex::TABELLE.' WHERE quelle = ? AND pid = ?', [AliasIndex::UEBERSETZUNG, $uebersetzung]), 'ohne alte Aliase steht nichts im Index — der heutige Alias wird von Contao selbst geroutet');
+
+        $db->update(AliasIndex::UEBERSETZUNG, [AliasRedirects::FELD => serialize([$marke.'/alt-fremdsprachig'])], ['id' => $uebersetzung]);
+        $index->neu(AliasIndex::UEBERSETZUNG, $uebersetzung);
+        $treffer = $index->finde($marke.'/alt-fremdsprachig', [], [AliasIndex::UEBERSETZUNG], $sprache);
+        ok(null !== $treffer && $treffer['pid'] === $uebersetzung, 'alter Alias wird in seiner Sprache gefunden');
+        ok(null === $index->finde($marke.'/alt-fremdsprachig', [], [AliasIndex::UEBERSETZUNG], 'xx'), 'in einer anderen Sprache nicht');
+        ok(null === $index->finde($marke.'/alt-fremdsprachig', [], [AliasIndex::UEBERSETZUNG], null), 'ohne Sprache nicht');
+        ok(null !== $index->finde($marke.'/alt', [], ['tl_page'], $sprache), 'Seiten-Eintraege gelten weiter in jeder Sprache');
+
+        $mitPraefix = $log->erfasse('/'.$sprache.'/'.$marke.'/aus-dem-ausland', '' !== $dns ? $dns : 'example.org');
+        $callbacks->hefteAnSeite($mitPraefix, $seite);
+        $liste = unserialize((string) $db->fetchOne('SELECT '.AliasRedirects::FELD.' FROM '.AliasIndex::UEBERSETZUNG.' WHERE id = ?', [$uebersetzung]), ['allowed_classes' => false]);
+        ok(\is_array($liste) && \in_array($marke.'/aus-dem-ausland', $liste, true), 'Adresse mit Sprachkuerzel landet an der UEBERSETZUNG, ohne Kuerzel', print_r($liste, true));
+        $seitenliste = unserialize((string) $db->fetchOne('SELECT '.AliasRedirects::FELD.' FROM tl_page WHERE id = ?', [$seite]), ['allowed_classes' => false]);
+        ok(!\is_array($seitenliste) || !\in_array($marke.'/aus-dem-ausland', $seitenliste, true), 'und NICHT an der Seite — sonst gaelte sie in allen Sprachen');
+        ok(1 === (int) $db->fetchOne('SELECT erledigt FROM '.NotFoundLog::TABELLE.' WHERE id = ?', [$mitPraefix]), '404-Eintrag gilt als erledigt');
+
+        $ohneUebersetzung = $log->erfasse('/'.$sprache.'/'.$marke.'/ohne-ziel', '' !== $dns ? $dns : 'example.org');
+        $db->delete(AliasIndex::UEBERSETZUNG, ['id' => $uebersetzung]);
+        try {
+            $callbacks->hefteAnSeite($ohneUebersetzung, $seite);
+            ok(false, 'ohne Uebersetzung in dieser Sprache wird abgewiesen');
+        } catch (\InvalidArgumentException $e) {
+            ok(str_contains($e->getMessage(), $sprache), 'ohne Uebersetzung in dieser Sprache wird abgewiesen', $e->getMessage());
+        }
+        $index->weg(AliasIndex::UEBERSETZUNG, $uebersetzung);
+    }
+}
 
 echo "\n## Was nicht als Alias geht\n";
 $kaputt = $log->erfasse('/'.$marke.'/a b(c)', '' !== $dns ? $dns : 'example.org');

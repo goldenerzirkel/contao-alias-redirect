@@ -21,6 +21,9 @@ class Plugin implements BundlePluginInterface
                     'Contao\\NewsBundle\\ContaoNewsBundle',
                     'Contao\\CalendarBundle\\ContaoCalendarBundle',
                     'Contao\\FaqBundle\\ContaoFaqBundle',
+                    // Das Feld gozi_redirects haengt sich an tl_page_i18nl10n; die Tabelle wird von
+                    // gozi-i18nl10n deklariert. Fehlt das Bundle, tut die DCA-Datei nichts.
+                    'GoZi\\I18nl10nBundle\\GoZiI18nl10nBundle',
                 ])];
     }
 }

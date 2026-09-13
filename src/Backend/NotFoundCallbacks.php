@@ -75,6 +75,12 @@ final class NotFoundCallbacks
             }
         }
 
+        // Fremdsprachige Adresse: sie gehoert an die UEBERSETZUNG, nicht an die Seite. Sonst gaelte der
+        // alte Alias in allen Sprachen — und in einer anderen Sprache kann er eine andere Seite meinen.
+        if (null !== ($sprache = $this->spracheAus((string) $satz['pfad'], $wurzel))) {
+            return $this->hefteAnUebersetzung($satz, $seitenId, $sprache);
+        }
+
         $alias = $this->aliasAus((string) $satz['pfad'], $wurzel);
         if (1 !== preg_match('(^(?!/)[\w/.-]+(?<!/)$)u', $alias)) {
             throw new \InvalidArgumentException(sprintf($this->trans('zielKeinAlias'), $alias));
@@ -97,6 +103,77 @@ final class NotFoundCallbacks
         $this->log->erledige((int) $satz['id']);
 
         return $seitenId;
+    }
+
+    /**
+     * Die Adresse an die Uebersetzung dieser Sprache haengen.
+     *
+     * @param array<string,mixed> $satz Zeile aus dem 404-Protokoll
+     *
+     * @throws \InvalidArgumentException wenn es die Uebersetzung nicht gibt oder die Adresse kein Alias sein kann
+     */
+    private function hefteAnUebersetzung(array $satz, int $seitenId, string $sprache): int
+    {
+        $uebersetzung = $this->db->fetchAssociative(
+            'SELECT id, alias, '.AliasRedirects::FELD.' AS liste FROM '.AliasIndex::UEBERSETZUNG.' WHERE pid = ? AND language = ?',
+            [$seitenId, $sprache],
+        );
+        if (false === $uebersetzung) {
+            throw new \InvalidArgumentException(sprintf($this->trans('zielOhneUebersetzung'), $sprache));
+        }
+
+        $alias = $this->ohnePraefix((string) $satz['pfad'], $sprache);
+        if (1 !== preg_match('(^(?!/)[\w/.-]+(?<!/)$)u', $alias)) {
+            throw new \InvalidArgumentException(sprintf($this->trans('zielKeinAlias'), $alias));
+        }
+        if ($alias === trim((string) $uebersetzung['alias'], '/')) {
+            throw new \InvalidArgumentException($this->trans('zielIstAlias'));
+        }
+
+        $liste = $this->aliase->bereinige($uebersetzung['liste'], (string) $uebersetzung['alias']);
+        if (!\in_array($alias, $liste, true)) {
+            $liste[] = $alias;
+        }
+        $this->db->update(AliasIndex::UEBERSETZUNG, [AliasRedirects::FELD => serialize($liste), 'tstamp' => time()], ['id' => (int) $uebersetzung['id']]);
+        $this->index->neu(AliasIndex::UEBERSETZUNG, (int) $uebersetzung['id']);
+        $this->db->delete(ManualRedirects::TABELLE, ['aus404' => (int) $satz['id']]);
+        $this->log->erledige((int) $satz['id']);
+
+        return $seitenId;
+    }
+
+    /**
+     * Traegt der Pfad ein Sprachkuerzel, zu dem es unter dieser Wurzel Uebersetzungen gibt?
+     *
+     * Nicht jedes zweibuchstabige erste Segment ist eine Sprache („de-luxe-reisen" waere keine), und
+     * das Praefix der Wurzel selbst (urlPrefix) ist keine Uebersetzung. Deshalb wird gegen die
+     * tatsaechlich vorhandenen Sprachen geprueft.
+     */
+    private function spracheAus(string $pfad, int $wurzel): ?string
+    {
+        $teile = explode('/', trim($pfad, '/'));
+        if (\count($teile) < 2 || 1 !== preg_match('/^[a-z]{2}(-[A-Za-z]{2,4})?$/', $teile[0])) {
+            return null;
+        }
+        $praefix = $wurzel > 0 ? trim((string) $this->db->fetchOne('SELECT urlPrefix FROM tl_page WHERE id = ?', [$wurzel]), '/') : '';
+        if ($teile[0] === $praefix) {
+            return null; // das ist die Adresse der Wurzel selbst, keine Uebersetzung
+        }
+        try {
+            $gibtEs = $this->db->fetchOne('SELECT id FROM '.AliasIndex::UEBERSETZUNG.' WHERE language = ? LIMIT 1', [$teile[0]]);
+        } catch (\Throwable) {
+            return null; // ohne gozi-i18nl10n gibt es die Tabelle nicht
+        }
+
+        return false !== $gibtEs && null !== $gibtEs ? $teile[0] : null;
+    }
+
+    /** Pfad ohne das fuehrende Sprachkuerzel — so steht der Alias in der Uebersetzung. */
+    private function ohnePraefix(string $pfad, string $sprache): string
+    {
+        $p = trim($pfad, '/');
+
+        return str_starts_with($p.'/', $sprache.'/') ? ltrim(substr($p, \strlen($sprache)), '/') : $p;
     }
 
     /**
