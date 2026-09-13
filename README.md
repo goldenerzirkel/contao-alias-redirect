@@ -69,10 +69,22 @@ Möglichkeiten:
 In allen drei Fällen gilt der Eintrag danach als erledigt und verschwindet aus der Arbeitsliste. Was
 gar keine Weiterleitung verdient, bekommt den Haken **Erledigt**.
 
+In der Liste steht in der Spalte **Ziel**, wie weit eine Adresse ist: `→ Seitentitel` bei einer Seite,
+`↗ Adresse` bei einem fremden Ziel (gekürzt, vollständig im Tooltip), `410` bei bewusst entfernten,
+*Erledigt* bei abgehakten ohne Ziel — und leer, wenn noch nichts entschieden ist. Sortieren lässt sich
+nach Adresse, Aufrufen (die häufigsten zuerst) und Zeitpunkt; der Filter *Erledigt* blendet Abgehaktes
+aus.
+
 Der Weg über die Seite wird mit Begründung abgelehnt, wenn er nicht tragen kann: die Seite liegt in
 einem Seitenbaum, der zu dieser Domain nicht gehört; die Adresse enthält Zeichen, die in keinem
 Alias vorkommen dürfen (Leerzeichen, Klammern, Prozentzeichen — typisch bei Scannern); oder sie ist
 der heutige Alias der Seite selbst. Dann bleibt die zweite Möglichkeit.
+
+Ein Sprachkürzel am Anfang wird dabei richtig behandelt: Es wird abgeschnitten, wenn der Baum es in
+seinen Adressen führt — das steuert der Schalter *Präfix für die Basissprache* an der Wurzelseite, und
+er ist je Baum verschieden setzbar. Steht er aus, ist `de/…` ein gewöhnliches Pfadstück und bleibt
+stehen. Die **Sprache der Wurzel** selbst gilt nie als Übersetzung: In einem deutschen Baum gehört
+`/de/…` an die Seite, in einem englischen Baum mit deutscher Übersetzung an die Übersetzung.
 
 Nicht protokolliert werden Backend-Aufrufe, Contaos eigene Adressen (`/_…`), `/.well-known/…`
 (Zertifikate, App-Verknüpfungen, `security.txt`), fehlende Bilder, Stylesheets und Schriften sowie
@@ -88,7 +100,7 @@ daneben von Hand angelegte Einträge auf:
 | Feld | Bedeutung |
 |---|---|
 | Alte Adresse | Pfad ohne Domain und ohne Schrägstrich am Anfang; `.html` wird ignoriert |
-| Domain | nur für diese Domain; leer = für alle |
+| Domain | nur für diese Domain; leer = für alle. Wer `https://de.pons.com/` einträgt, meint `de.pons.com` — das wird beim Speichern zurechtgerückt |
 | Art des Ziels | Seite im Seitenbaum, beliebige Adresse, oder kein Ziel (410 Gone) |
 | Art der Weiterleitung | 301, 302, 303, 307 oder 308 |
 
