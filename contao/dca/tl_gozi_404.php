@@ -44,7 +44,7 @@ $GLOBALS['TL_DCA']['tl_gozi_404'] = [
             'defaultSearchField' => 'pfad',
         ],
         'label' => [
-            'fields' => ['pfad', 'host', 'zaehler', 'tstamp'],
+            'fields' => ['pfad', 'host', 'zaehler', 'tstamp', 'zielTyp'],
             'showColumns' => true,
         ],
         'operations' => [

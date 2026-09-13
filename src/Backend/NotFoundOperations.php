@@ -61,12 +61,41 @@ final class NotFoundOperations
     #[AsCallback(table: 'tl_gozi_404', target: 'list.label.label')]
     public function label(array $row, string $label, DataContainer $dc, array $args): array
     {
-        $args[3] = Date::parse(\Contao\Config::get('datimFormat'), (int) $row['tstamp']);
+        $args[3] = Date::parse(Config::get('datimFormat'), (int) $row['tstamp']);
         if ('' !== (string) ($row['verweis'] ?? '')) {
             $args[0] .= '<span style="display:block;color:#999">← '.StringUtil::specialchars($row['verweis']).'</span>';
         }
+        $args[4] = $this->zielInWorten($row);
 
         return $args;
+    }
+
+    /**
+     * Die Spalte „Ziel": auf einen Blick, ob eine Adresse schon versorgt ist.
+     *
+     * Leer heisst offen. Sonst steht dort, wohin es geht — der Titel der Seite, die fremde Adresse oder
+     * 410. Abgehakt ohne Ziel ist die dritte Moeglichkeit und sagt: bewusst ohne Weiterleitung.
+     */
+    private function zielInWorten(array $row): string
+    {
+        $typ = (string) ($row['zielTyp'] ?? '');
+
+        if (ManualRedirects::ZIEL_SEITE === $typ && (int) ($row['zielSeite'] ?? 0) > 0) {
+            $titel = (string) $this->db->fetchOne('SELECT title FROM tl_page WHERE id = ?', [(int) $row['zielSeite']]);
+
+            return '→ '.StringUtil::specialchars('' !== $titel ? $titel : '#'.$row['zielSeite']);
+        }
+        if (ManualRedirects::ZIEL_URL === $typ && '' !== (string) ($row['zielUrl'] ?? '')) {
+            $ziel = (string) $row['zielUrl'];
+            $kurz = mb_strlen($ziel) > 48 ? mb_substr($ziel, 0, 45).'…' : $ziel;
+
+            return '<span title="'.StringUtil::specialchars($ziel).'">↗ '.StringUtil::specialchars($kurz).'</span>';
+        }
+        if (ManualRedirects::ZIEL_GONE === $typ) {
+            return '410';
+        }
+
+        return ($row['erledigt'] ?? false) ? '<span style="color:#999">'.StringUtil::specialchars($this->feldName('erledigt')).'</span>' : '';
     }
 
     /** Die Zeile in Worten — beim Zuordnen muss sichtbar sein, worum es geht. */
