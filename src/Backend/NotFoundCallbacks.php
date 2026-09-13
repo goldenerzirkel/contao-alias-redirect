@@ -37,7 +37,7 @@ final class NotFoundCallbacks
      * waechst. Damit steht die Weiterleitung dort, wo der Redakteur sie sucht: an der Seite.
      *
      * Drei Gruende, aus denen das nicht geht, und die deshalb als Fehler am Feld erscheinen:
-     *  - die Seite liegt in einem Baum, der zu diesem Rechnernamen nicht gehoert (Aliase gelten je Wurzel),
+     *  - die Seite liegt in einem Baum, der zu dieser Domain nicht gehoert (Aliase gelten je Wurzel),
      *  - die Adresse taugt nicht als Alias (Leerzeichen, Klammern, Prozentzeichen — typisch bei Scannern),
      *  - die Adresse ist der echte Alias der Seite (dann ist der 404 ein anderes Problem).
      */
@@ -128,7 +128,7 @@ final class NotFoundCallbacks
         return $this->redirects->normalisiere((string) $wert);
     }
 
-    /** Host: nur der Rechnername. Wer „https://de.pons.com/" eintraegt, meint „de.pons.com". */
+    /** Host: nur die Domain. Wer „https://de.pons.com/" eintraegt, meint „de.pons.com". */
     #[AsCallback(table: 'tl_gozi_redirect', target: 'fields.host.save')]
     public function speichereHost(mixed $wert): string
     {

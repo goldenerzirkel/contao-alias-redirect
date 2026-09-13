@@ -32,7 +32,7 @@ $GLOBALS['TL_DCA']['tl_gozi_redirect'] = [
         'sorting' => [
             'mode' => DataContainer::MODE_SORTABLE,
             'fields' => ['pfad'],
-            'panelLayout' => 'filter;search,limit',
+            'panelLayout' => 'filter;sort,search,limit',
             'defaultSearchField' => 'pfad',
         ],
         'label' => [

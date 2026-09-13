@@ -7,8 +7,8 @@ $GLOBALS['TL_LANG']['tl_gozi_redirect']['ziel_legend'] = 'Ziel';
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['hinweis_legend'] = 'Notiz';
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['publish_legend'] = 'Veröffentlichung';
 
-$GLOBALS['TL_LANG']['tl_gozi_redirect']['pfad'] = ['Alte Adresse', 'Der Pfad ohne Rechnernamen und ohne Schrägstrich am Anfang, z. B. „unternehmen/alte-seite". Eine Endung .html wird ignoriert.'];
-$GLOBALS['TL_LANG']['tl_gozi_redirect']['host'] = ['Rechnername', 'Nur für diesen Host, z. B. „de.pons.com". Leer lassen, wenn die Weiterleitung auf allen Hosts gelten soll.'];
+$GLOBALS['TL_LANG']['tl_gozi_redirect']['pfad'] = ['Alte Adresse', 'Der Pfad ohne Domain und ohne Schrägstrich am Anfang, z. B. „unternehmen/alte-seite". Eine Endung .html wird ignoriert.'];
+$GLOBALS['TL_LANG']['tl_gozi_redirect']['host'] = ['Domain', 'Nur für diese Domain, z. B. „de.pons.com". Leer lassen, wenn die Weiterleitung auf allen Domains gelten soll.'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['zielTyp'] = ['Art des Ziels', 'Eine Seite im Seitenbaum, eine beliebige Adresse oder gar kein Ziel (410 Gone).'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['zielSeite'] = ['Zielseite', 'Die Seite, auf die weitergeleitet wird — auch in einem anderen Seitenbaum.'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['zielUrl'] = ['Zieladresse', 'Vollständige Adresse mit http(s)://.'];

@@ -38,7 +38,7 @@ Weiterleitungsketten: Alle alten Adressen zeigen direkt auf die aktuelle.
 Im Navigationsbereich **Weiterleitungen** stehen zwei Punkte.
 
 **Ins Leere gelaufen** sammelt jede Adresse, die mit 404 beantwortet wurde — eine Zeile je Adresse und
-Rechnername, mit Zähler, Verweisgeber und Zeitpunkt. **Ziel festlegen** öffnet eine Maske mit drei
+Domain, mit Zähler, Verweisgeber und Zeitpunkt. **Ziel festlegen** öffnet eine Maske mit drei
 Möglichkeiten:
 
 * **Seite in diesem System** — der Regelweg. Eine Seite wählen, speichern: die Adresse steht danach im
@@ -52,7 +52,7 @@ In allen drei Fällen gilt der Eintrag danach als erledigt und verschwindet aus 
 gar keine Weiterleitung verdient, bekommt den Haken **Erledigt**.
 
 Der Weg über die Seite wird mit Begründung abgelehnt, wenn er nicht tragen kann: die Seite liegt in
-einem Seitenbaum, der zu diesem Rechnernamen nicht gehört; die Adresse enthält Zeichen, die in keinem
+einem Seitenbaum, der zu dieser Domain nicht gehört; die Adresse enthält Zeichen, die in keinem
 Alias vorkommen dürfen (Leerzeichen, Klammern, Prozentzeichen — typisch bei Scannern); oder sie ist
 der heutige Alias der Seite selbst. Dann bleibt die zweite Möglichkeit.
 
@@ -69,12 +69,12 @@ daneben von Hand angelegte Einträge auf:
 
 | Feld | Bedeutung |
 |---|---|
-| Alte Adresse | Pfad ohne Rechnernamen und ohne Schrägstrich am Anfang; `.html` wird ignoriert |
-| Rechnername | nur für diesen Host; leer = für alle |
+| Alte Adresse | Pfad ohne Domain und ohne Schrägstrich am Anfang; `.html` wird ignoriert |
+| Domain | nur für diese Domain; leer = für alle |
 | Art des Ziels | Seite im Seitenbaum, beliebige Adresse, oder kein Ziel (410 Gone) |
 | Art der Weiterleitung | 301, 302, 303, 307 oder 308 |
 
-Ein passender Rechnername gewinnt gegen einen leeren. Diese Weiterleitungen gelten **vor** den
+Eine passende Domain gewinnt gegen eine leere. Diese Weiterleitungen gelten **vor** den
 Alias-Weiterleitungen an den Seiten — sie sind die ausdrückliche Entscheidung.
 
 Für Weiterleitungen nach **Muster** (reguläre Ausdrücke, Platzhalter) bleibt

@@ -40,7 +40,7 @@ $GLOBALS['TL_DCA']['tl_gozi_404'] = [
         'sorting' => [
             'mode' => DataContainer::MODE_SORTABLE,
             'fields' => ['tstamp DESC'],
-            'panelLayout' => 'filter;search,limit',
+            'panelLayout' => 'filter;sort,search,limit',
             'defaultSearchField' => 'pfad',
         ],
         'label' => [

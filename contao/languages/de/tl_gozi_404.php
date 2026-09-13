@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-$GLOBALS['TL_LANG']['tl_gozi_404']['pfad'] = ['Adresse', 'Der angefragte Pfad ohne Rechnernamen und ohne Abfrageteil.'];
-$GLOBALS['TL_LANG']['tl_gozi_404']['host'] = ['Rechnername', 'Der Host, unter dem die Adresse angefragt wurde.'];
+$GLOBALS['TL_LANG']['tl_gozi_404']['pfad'] = ['Adresse', 'Der angefragte Pfad ohne Domain und ohne Abfrageteil.'];
+$GLOBALS['TL_LANG']['tl_gozi_404']['host'] = ['Domain', 'Die Domain, unter der die Adresse angefragt wurde.'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['zaehler'] = ['Aufrufe', 'Wie oft diese Adresse ins Leere gelaufen ist.'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['tstamp'] = ['Zuletzt', 'Wann die Adresse zuletzt angefragt wurde.'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['erstmals'] = ['Erstmals', 'Wann die Adresse zum ersten Mal ins Leere lief.'];
