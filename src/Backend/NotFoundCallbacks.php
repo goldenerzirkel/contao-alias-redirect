@@ -166,8 +166,8 @@ final class NotFoundCallbacks
         if ($wurzel < 1) {
             return null;
         }
-        $stamm = $this->db->fetchAssociative('SELECT language, urlPrefix FROM tl_page WHERE id = ?', [$wurzel]);
-        if (false === $stamm) {
+        $stamm = $this->wurzelDaten($wurzel);
+        if (null === $stamm) {
             return null;
         }
         if ($teile[0] === trim((string) $stamm['urlPrefix'], '/') || $teile[0] === (string) $stamm['language']) {
@@ -204,20 +204,57 @@ final class NotFoundCallbacks
         if ($wurzel < 1) {
             return $p;
         }
-        $stamm = $this->db->fetchAssociative('SELECT language, urlPrefix FROM tl_page WHERE id = ?', [$wurzel]);
-        if (false === $stamm) {
+        $stamm = $this->wurzelDaten($wurzel);
+        if (null === $stamm) {
             return $p;
         }
         // Zwei moegliche Praefixe: das der Wurzel (urlPrefix) und das der Wurzelsprache, das
-        // gozi-i18nl10n auch fuer die Basissprache setzt — „/en/service-center/…" liefert im PONS-Baum
-        // 200, obwohl urlPrefix leer ist (gemessen 13.09.2026). Beide gehoeren nicht in den Alias.
-        foreach ([trim((string) $stamm['urlPrefix'], '/'), (string) $stamm['language']] as $praefix) {
+        // gozi-i18nl10n fuer die Basissprache setzt, WENN der Schalter dafuer gesetzt ist
+        // (i18nl10n_default_language_prefix). Gemessen 13.09.2026: mit Schalter liefert
+        // cms.langenscheidt.com/de/impressum eine 301, /impressum dagegen 404 — das Kuerzel gehoert
+        // also zur Adresse, nicht zum Alias. Ohne Schalter waere „de/…" ein gewoehnliches Pfadstueck.
+        foreach ([trim((string) $stamm['urlPrefix'], '/'), $stamm['basispraefix']] as $praefix) {
             if ('' !== $praefix && str_starts_with($p.'/', $praefix.'/')) {
                 return ltrim(substr($p, \strlen($praefix)), '/');
             }
         }
 
         return $p;
+    }
+
+    /**
+     * Sprache und Praefixe einer Wurzel.
+     *
+     * „basispraefix" ist das Sprachkuerzel der Basissprache, sofern es in der Adresse steht — der
+     * Schalter dafuer sitzt an der Wurzel (i18nl10n_default_language_prefix) und ist je Baum
+     * verschieden setzbar, auch bei einsprachigen. Ohne ihn gibt es kein „/de/" und das Kuerzel
+     * duerfte nicht abgeschnitten werden.
+     *
+     * @return array{language:string, urlPrefix:string, basispraefix:string}|null
+     */
+    private function wurzelDaten(int $wurzel): ?array
+    {
+        if ($wurzel < 1) {
+            return null;
+        }
+        $spalten = 'language, urlPrefix';
+        try {
+            if (isset($this->db->createSchemaManager()->listTableColumns('tl_page')['i18nl10n_default_language_prefix'])) {
+                $spalten .= ', i18nl10n_default_language_prefix';
+            }
+        } catch (\Throwable) {
+        }
+        $satz = $this->db->fetchAssociative('SELECT '.$spalten.' FROM tl_page WHERE id = ?', [$wurzel]);
+        if (false === $satz) {
+            return null;
+        }
+        $mitPraefix = !\array_key_exists('i18nl10n_default_language_prefix', $satz) || (bool) $satz['i18nl10n_default_language_prefix'];
+
+        return [
+            'language' => (string) $satz['language'],
+            'urlPrefix' => (string) $satz['urlPrefix'],
+            'basispraefix' => $mitPraefix ? (string) $satz['language'] : '',
+        ];
     }
 
     private function trans(string $schluessel): string

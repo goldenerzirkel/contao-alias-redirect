@@ -139,6 +139,18 @@ if (!$uebersetzungen) {
             ok(\is_array($seitenliste) && \in_array($marke.'/in-der-wurzelsprache', $seitenliste, true), 'Adresse in der Wurzelsprache landet an der SEITE, nicht an einer Uebersetzung', print_r($seitenliste, true));
         }
 
+        // Der Praefix-Schalter sitzt an der Wurzel und ist je Baum verschieden setzbar. Steht er aus,
+        // gibt es kein „/de/" — dann ist das Kuerzel ein gewoehnliches Pfadstueck und bleibt stehen.
+        if ('' !== $wurzelsprache && isset($db->createSchemaManager()->listTableColumns('tl_page')['i18nl10n_default_language_prefix'])) {
+            $schalterVorher = $db->fetchOne('SELECT i18nl10n_default_language_prefix FROM tl_page WHERE id = ?', [$root]);
+            $db->update('tl_page', ['i18nl10n_default_language_prefix' => 0], ['id' => $root]);
+            $ohneSchalter = $log->erfasse('/'.$wurzelsprache.'/'.$marke.'/ohne-schalter', '' !== $dns ? $dns : 'example.org');
+            $callbacks->hefteAnSeite($ohneSchalter, $seite);
+            $seitenliste = unserialize((string) $db->fetchOne('SELECT '.AliasRedirects::FELD.' FROM tl_page WHERE id = ?', [$seite]), ['allowed_classes' => false]);
+            ok(\is_array($seitenliste) && \in_array($wurzelsprache.'/'.$marke.'/ohne-schalter', $seitenliste, true), 'ohne Praefix-Schalter bleibt das Sprachkuerzel im Alias stehen', print_r($seitenliste, true));
+            $db->update('tl_page', ['i18nl10n_default_language_prefix' => $schalterVorher], ['id' => $root]);
+        }
+
         $ohneUebersetzung = $log->erfasse('/'.$sprache.'/'.$marke.'/ohne-ziel', '' !== $dns ? $dns : 'example.org');
         $db->delete(AliasIndex::UEBERSETZUNG, ['id' => $uebersetzung]);
         try {
