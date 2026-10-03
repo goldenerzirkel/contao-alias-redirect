@@ -6,6 +6,14 @@ declare(strict_types=1);
  * Alte Aliase an Nachrichten und Terminen — dieselben zwei Felder wie an der Seite; in die Paletten hängt sie
  * RecordAliasListener (onload) hinter den Alias.
  */
+// Ohne das zugehörige Contao-Bundle gibt es tl_calendar_events nicht. Ohne diese Bedingung legte
+// contao:migrate eine Rumpftabelle tl_calendar_events nur mit diesen beiden Spalten an (DcaSchemaProvider
+// ruft createTable für jede Tabelle mit sql-Feldern). Gleiches Muster wie tl_page_i18nl10n.php;
+// die Ladereihenfolge in Plugin.php stellt sicher, dass config bei vorhandenem Bundle gesetzt ist.
+if (!isset($GLOBALS['TL_DCA']['tl_calendar_events']['config'])) {
+    return;
+}
+
 $GLOBALS['TL_DCA']['tl_calendar_events']['fields']['gozi_noRedirect'] = [
     'inputType' => 'checkbox',
     'exclude' => true,

@@ -138,6 +138,9 @@ Dieselben zwei Felder stehen an Nachrichten (tl_news), Terminen (tl_calendar_eve
 `/blog/alter-alias` leitet mit 301 auf die heutige Adresse der Nachricht. Gilt in dem Seitenbaum, in dem
 die Leseseite des Archivs, Kalenders bzw. der FAQ-Kategorie liegt.
 
+Die Felder erscheinen nur, wenn das jeweilige Contao-Bundle installiert ist (News, Calendar, FAQ).
+Fehlt es, legt das Bundle dafür nichts an.
+
 ## Index alter Aliase
 
 Die Liste an der Seite bleibt die Wahrheit. Für die Suche bei jeder Anfrage führt das Bundle zusätzlich
