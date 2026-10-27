@@ -40,7 +40,7 @@ $log = new NotFoundLog($db);
 $vonHand = new ManualRedirects($db);
 $aliase = new AliasRedirects($db);
 $index = new AliasIndex($db, $aliase);
-$callbacks = new NotFoundCallbacks($db, $log, $vonHand, $aliase, $index);
+$callbacks = new NotFoundCallbacks($db, $log, $vonHand, $aliase, $index, new \Gozi\AliasRedirectBundle\Service\AliasBelegung($db, $aliase));
 
 $marke = 'zzz404-'.bin2hex(random_bytes(3));
 $seite = 0;

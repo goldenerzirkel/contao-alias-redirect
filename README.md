@@ -156,6 +156,32 @@ Mit dem Index prüft das Bundle alte Aliase **vor** dem Router. Nur so wird ein 
 `leistungen/alte-seite` weitergeleitet, den Contao sonst als Parameter der Elternseite `leistungen`
 liest. Eine veröffentlichte Seite, die den Alias selbst trägt, gewinnt weiterhin.
 
+## Doppelt verwendete Adressen
+
+Eine Adresse darf in einem Seitenbaum nur eine Seite meinen. Steht sie zweimal als Weiterleitung, ist
+offen, wohin sie führt; steht sie als Weiterleitung und zugleich als Seitenpfad einer anderen Seite,
+ist die Weiterleitung tot und springt um, sobald die andere Seite umbenannt wird. Das Bundle prüft
+deshalb an jeder Stelle, an der eine Adresse entsteht, und **nennt jede Fundstelle**:
+
+> Diese Weiterleitungen werden schon verwendet und können hier nicht stehen: „agb“: Seite 1244
+> „AGB“ (DE, Seitenpfad).
+
+* **Umbenennen:** Der alte Alias kommt nur in die Liste, wenn er wirklich frei geworden ist. Trägt
+  ihn noch eine andere Seite, etwa das Original einer Kopie, erscheint stattdessen ein Hinweis.
+* **Einträge von Hand** und **Ziel festlegen** in der 404-Liste werden mit Fehler am Feld abgelehnt.
+* **Neuer Seitenpfad**, der anderswo als Weiterleitung steht: ebenfalls Fehler am Feld. Bestand, der
+  schon doppelt ist, wird beim Speichern als Fehlermeldung angezeigt, blockiert die Seite aber nicht.
+
+Gezählt wird je Baum und Sprache, unveröffentlichte Seiten eingeschlossen. Eine Weiterleitung an der
+Seite gilt in jeder Sprache, zählt gegen Seitenpfade aber als Basissprache: Eine PONS-Seite behält ihre
+alte englische Adresse, auch wenn eine deutsche Übersetzung denselben Wortlaut trägt.
+
+Den Bestand prüfen (Rückgabe 1 bei Konflikten):
+
+```bash
+php bin/console gozi:alias-redirect:pruefen
+```
+
 ## Rechte für Redakteure
 
 Administratoren sehen die neuen Felder sofort. Redakteursgruppen brauchen in den

@@ -10,6 +10,7 @@ use Contao\DataContainer;
 use Contao\Input;
 use Contao\Versions;
 use Doctrine\DBAL\Connection;
+use Gozi\AliasRedirectBundle\Service\AliasBelegung;
 use Gozi\AliasRedirectBundle\Service\AliasIndex;
 use Gozi\AliasRedirectBundle\Service\AliasRedirects;
 
@@ -26,6 +27,7 @@ final class PageAliasListener
         private readonly AliasRedirects $redirects,
         private readonly Connection $db,
         private readonly AliasIndex $index,
+        private readonly AliasBelegung $belegung,
     ) {
     }
 
@@ -66,10 +68,24 @@ final class PageAliasListener
         $aktuell = $dc->getCurrentRecord();
         $alt = (string) ($aktuell['alias'] ?? '');
         $neu = (string) $value;
+        $seite = (int) $dc->id;
+        $wurzel = $this->belegung->wurzel($seite);
+
+        // Doppelte Seitenpfade unter Seiten prueft Contao selbst (Prioritaet 0). Hier: steht der neue
+        // Alias anderswo als Weiterleitung oder als Pfad einer Uebersetzung? Der Alias einer Seite ist in
+        // jeder Sprache eine Adresse (gozi-i18nl10n loest /<sprache>/<alias> auch gegen tl_page auf).
+        $this->belegung->pruefeSeitenpfad($neu, $wurzel, null, $seite, $neu !== $alt);
 
         if ('' !== $alt && $alt !== $neu && !Input::post('gozi_noRedirect')) {
-            $liste = Input::post(AliasRedirects::FELD) ?? ($aktuell[AliasRedirects::FELD] ?? null);
-            Input::setPost(AliasRedirects::FELD, $this->redirects->mitAltemAlias($liste, $alt, $neu));
+            // Traegt eine andere Seite den alten Alias noch, ist er nicht frei geworden. Als Weiterleitung
+            // waere er jetzt tot und spaeter, sobald die andere Seite umbenannt wird, mehrdeutig.
+            $belegt = $this->belegung->wer($alt, $wurzel, null, true, $seite);
+            if ([] === $belegt) {
+                $liste = Input::post(AliasRedirects::FELD) ?? ($aktuell[AliasRedirects::FELD] ?? null);
+                Input::setPost(AliasRedirects::FELD, $this->redirects->mitAltemAlias($liste, $alt, $neu));
+            } else {
+                $this->belegung->melde(sprintf($this->belegung->text('alterAliasBelegt'), $alt, $this->belegung->beschreibe($belegt)));
+            }
         }
 
         return $value;
@@ -81,6 +97,9 @@ final class PageAliasListener
     {
         $aktuellerAlias = (string) (Input::post('alias') ?? ($dc->getCurrentRecord()['alias'] ?? ''));
         $liste = $this->redirects->bereinige($value, $aktuellerAlias);
+        $seite = (int) $dc->id;
+        // Eine Weiterleitung an der Seite gilt in jeder Sprache (AliasIndex::finde).
+        $this->belegung->pruefeListe($liste, $this->belegung->wurzel($seite), null, $seite, $dc->getCurrentRecord()[AliasRedirects::FELD] ?? null);
 
         return [] === $liste ? null : serialize($liste);
     }
@@ -114,7 +133,12 @@ final class PageAliasListener
     {
         $vorher = $this->aliasVorher[$pid] ?? '';
         $neu = (string) ($data['alias'] ?? '');
-        if ('' !== $vorher && '' !== $neu && $vorher !== $neu) {
+        $gewechselt = '' !== $vorher && '' !== $neu && $vorher !== $neu;
+        // Wie beim Umbenennen: nur ein frei gewordener Alias wird zur Weiterleitung.
+        $belegt = $gewechselt ? $this->belegung->wer($vorher, $this->belegung->wurzel($pid), null, true, $pid) : [];
+        if ([] !== $belegt) {
+            $this->belegung->melde(sprintf($this->belegung->text('alterAliasBelegt'), $vorher, $this->belegung->beschreibe($belegt)));
+        } elseif ($gewechselt) {
             $liste = $this->redirects->mitAltemAlias($data[AliasRedirects::FELD] ?? null, $vorher, $neu);
             $this->db->update('tl_page', [AliasRedirects::FELD => serialize($liste), 'tstamp' => time()], ['id' => $pid]);
             // Als Version festhalten — im Backend; ohne Sitzung (Kommandozeile) bleibt es beim Datensatz.

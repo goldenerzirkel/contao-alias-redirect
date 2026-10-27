@@ -7,6 +7,7 @@ namespace Gozi\AliasRedirectBundle\Backend;
 use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
 use Contao\DataContainer;
 use Doctrine\DBAL\Connection;
+use Gozi\AliasRedirectBundle\Service\AliasBelegung;
 use Gozi\AliasRedirectBundle\Service\AliasIndex;
 use Gozi\AliasRedirectBundle\Service\AliasRedirects;
 use Gozi\AliasRedirectBundle\Service\ManualRedirects;
@@ -27,6 +28,7 @@ final class NotFoundCallbacks
         private readonly ManualRedirects $redirects,
         private readonly AliasRedirects $aliase,
         private readonly AliasIndex $index,
+        private readonly AliasBelegung $belegung,
     ) {
     }
 
@@ -88,6 +90,8 @@ final class NotFoundCallbacks
         if ($alias === trim((string) $seite['alias'], '/')) {
             throw new \InvalidArgumentException($this->trans('zielIstAlias'));
         }
+        // An der Seite gilt die Weiterleitung in jeder Sprache.
+        $this->belegt($alias, $wurzel, null, $seitenId);
 
         $liste = $this->aliase->bereinige($seite['gozi_redirects'], (string) $seite['alias']);
         if (!\in_array($alias, $liste, true)) {
@@ -129,6 +133,7 @@ final class NotFoundCallbacks
         if ($alias === trim((string) $uebersetzung['alias'], '/')) {
             throw new \InvalidArgumentException($this->trans('zielIstAlias'));
         }
+        $this->belegt($alias, $this->belegung->wurzel($seitenId), $sprache, $seitenId);
 
         $liste = $this->aliase->bereinige($uebersetzung['liste'], (string) $uebersetzung['alias']);
         if (!\in_array($alias, $liste, true)) {
@@ -255,6 +260,20 @@ final class NotFoundCallbacks
             'urlPrefix' => (string) $satz['urlPrefix'],
             'basispraefix' => $mitPraefix ? (string) $satz['language'] : '',
         ];
+    }
+
+    /**
+     * Steht die Adresse schon an einer anderen Seite — als Seitenpfad oder als Weiterleitung? Dann ist
+     * die Zuordnung hier nicht die Loesung, und die Maske sagt, wo sie steht.
+     *
+     * @throws \InvalidArgumentException
+     */
+    private function belegt(string $alias, int $wurzel, ?string $sprache, int $seitenId): void
+    {
+        $belegt = $this->belegung->wer($alias, $wurzel, $sprache, true, $seitenId);
+        if ([] !== $belegt) {
+            throw new \InvalidArgumentException(sprintf($this->belegung->text('seitenpfadBelegt'), $alias, $this->belegung->beschreibe($belegt)));
+        }
     }
 
     private function trans(string $schluessel): string

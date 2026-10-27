@@ -9,6 +9,7 @@ use Contao\CoreBundle\DependencyInjection\Attribute\AsCallback;
 use Contao\DataContainer;
 use Contao\Input;
 use Doctrine\DBAL\Connection;
+use Gozi\AliasRedirectBundle\Service\AliasBelegung;
 use Gozi\AliasRedirectBundle\Service\AliasIndex;
 use Gozi\AliasRedirectBundle\Service\AliasRedirects;
 
@@ -27,6 +28,7 @@ final class TranslationAliasListener
         private readonly AliasRedirects $redirects,
         private readonly Connection $db,
         private readonly AliasIndex $index,
+        private readonly AliasBelegung $belegung,
     ) {
     }
 
@@ -50,10 +52,25 @@ final class TranslationAliasListener
         $aktuell = $dc->getCurrentRecord();
         $alt = (string) ($aktuell['alias'] ?? '');
         $neu = (string) $value;
+        $seite = (int) ($aktuell['pid'] ?? 0);
+        $sprache = (string) ($aktuell['language'] ?? '');
+        $wurzel = $this->belegung->wurzel($seite);
+
+        // Doppelte Seitenpfade (Uebersetzungen derselben Sprache, Seiten-Aliase) prueft gozi-i18nl10n
+        // vorher (generateAlias, Prioritaet 0) nach derselben Regel: geaendert → Fehler, Bestand → Meldung.
+        // Hier kommen die Weiterleitungen dazu, die gozi-i18nl10n nicht kennt.
+        $this->belegung->pruefeSeitenpfad($neu, $wurzel, $sprache, $seite, $neu !== $alt, true);
 
         if ('' !== $alt && $alt !== $neu) {
-            $liste = Input::post(AliasRedirects::FELD) ?? ($aktuell[AliasRedirects::FELD] ?? null);
-            Input::setPost(AliasRedirects::FELD, $this->redirects->mitAltemAlias($liste, $alt, $neu));
+            // Der Fall vom 27.10.2026: Die Kopie wird umbenannt, ihr alter Alias ist der des Originals.
+            // Er ist nicht frei geworden und gehoert nicht in die Liste der Kopie.
+            $belegt = $this->belegung->wer($alt, $wurzel, $sprache, true, $seite);
+            if ([] === $belegt) {
+                $liste = Input::post(AliasRedirects::FELD) ?? ($aktuell[AliasRedirects::FELD] ?? null);
+                Input::setPost(AliasRedirects::FELD, $this->redirects->mitAltemAlias($liste, $alt, $neu));
+            } else {
+                $this->belegung->melde(sprintf($this->belegung->text('alterAliasBelegt'), $alt, $this->belegung->beschreibe($belegt)));
+            }
         }
 
         return $value;
@@ -63,8 +80,11 @@ final class TranslationAliasListener
     #[AsCallback(table: AliasIndex::UEBERSETZUNG, target: 'fields.gozi_redirects.save')]
     public function listeBereinigen(mixed $value, DataContainer $dc): mixed
     {
-        $aktuellerAlias = (string) (Input::post('alias') ?? ($dc->getCurrentRecord()['alias'] ?? ''));
+        $aktuell = $dc->getCurrentRecord();
+        $aktuellerAlias = (string) (Input::post('alias') ?? ($aktuell['alias'] ?? ''));
         $liste = $this->redirects->bereinige($value, $aktuellerAlias);
+        $seite = (int) ($aktuell['pid'] ?? 0);
+        $this->belegung->pruefeListe($liste, $this->belegung->wurzel($seite), (string) ($aktuell['language'] ?? ''), $seite, $aktuell[AliasRedirects::FELD] ?? null);
 
         return [] === $liste ? null : serialize($liste);
     }
