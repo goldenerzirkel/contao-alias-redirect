@@ -33,6 +33,7 @@ $GLOBALS['TL_DCA']['tl_gozi_404'] = [
                 'pfad,host' => 'unique',
                 'tstamp' => 'index',
                 'erledigt' => 'index',
+                'endung' => 'index',
             ],
         ],
     ],
@@ -40,11 +41,12 @@ $GLOBALS['TL_DCA']['tl_gozi_404'] = [
         'sorting' => [
             'mode' => DataContainer::MODE_SORTABLE,
             'fields' => ['tstamp DESC'],
-            'panelLayout' => 'filter;sort,search,limit',
+            // „endungen“: mehrere Endungen auf einmal ausblenden (Backend\NotFoundEndungen).
+            'panelLayout' => 'filter;endungen;sort,search,limit',
             'defaultSearchField' => 'pfad',
         ],
         'label' => [
-            'fields' => ['pfad', 'host', 'zaehler', 'tstamp', 'zielTyp'],
+            'fields' => ['pfad', 'endung', 'host', 'zaehler', 'tstamp', 'zielTyp'],
             'showColumns' => true,
         ],
         'operations' => [
@@ -89,6 +91,12 @@ $GLOBALS['TL_DCA']['tl_gozi_404'] = [
             'search' => true,
             'sorting' => true,
             'sql' => "varchar(255) COLLATE utf8mb4_bin NOT NULL default ''",
+        ],
+        // Endung der angefragten Adresse, beim Erfassen aus dem ROHEN Pfad (pfad ist ohne .html gespeichert).
+        'endung' => [
+            'filter' => true,
+            'sorting' => true,
+            'sql' => "varchar(16) NOT NULL default ''",
         ],
         'host' => [
             'filter' => true,

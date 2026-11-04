@@ -10,3 +10,8 @@ services:
       - '../../ContaoManager/'
       - '../../DependencyInjection/'
       - '../../GoziAliasRedirectBundle.php'
+
+  # Endungen, die gar nicht erst erfasst werden (Konfiguration gozi_alias_redirect.ohne_endungen).
+  Gozi\AliasRedirectBundle\Service\NotFoundLog:
+    arguments:
+      $ohneEndungen: '%gozi_alias_redirect.ohne_endungen%'

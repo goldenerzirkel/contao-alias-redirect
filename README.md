@@ -86,6 +86,30 @@ er ist je Baum verschieden setzbar. Steht er aus, ist `de/…` ein gewöhnliches
 stehen. Die **Sprache der Wurzel** selbst gilt nie als Übersetzung: In einem deutschen Baum gehört
 `/de/…` an die Seite, in einem englischen Baum mit deutscher Übersetzung an die Übersetzung.
 
+### Nach Dateiendung filtern
+
+Die Spalte **Endung** zeigt, wie die Adresse endete: `html`, `php`, `asp` … oder leer. Im Filterbereich
+der Liste gibt es zwei Werkzeuge dafür:
+
+* **Filter *Endung*** zeigt nur eine Endung, etwa nur `.html`. Das sind die alten Seitenadressen, um die
+  es beim Weiterleiten meist geht.
+* **Endungen ausblenden** blendet mehrere Endungen auf einmal aus: Haken bei `.php`, `.asp`, `.env`
+  setzen, dann *Anwenden*. Die Zahl hinter jeder Endung nennt die offenen Einträge. Die Auswahl gilt für
+  die Sitzung, bis *Zurücksetzen*.
+
+Scanner-Endungen, die nie in die Liste sollen, schließt die Konfiguration aus (`config/config.yaml`):
+
+```yaml
+gozi_alias_redirect:
+    ohne_endungen: [php, asp, aspx, jsp, cgi, env, sql, bak]
+```
+
+Solche Aufrufe werden dann gar nicht erst gespeichert. Schon gespeicherte bleiben in der Liste.
+
+**Einträge vor dem 04.11.2026:** Bei `.html` fehlt dort die Endung. `.html` wurde beim Speichern
+abgeschnitten, und die Migration kann sie nicht zurückgewinnen. Andere Endungen (`.php` …) sind
+nachgetragen.
+
 Nicht protokolliert werden Backend-Aufrufe, Contaos eigene Adressen (`/_…`), `/.well-known/…`
 (Zertifikate, App-Verknüpfungen, `security.txt`), fehlende Bilder, Stylesheets und Schriften sowie
 alles außer GET und HEAD. Der Abfrageteil (`?x=1`) wird nicht gespeichert — er macht aus einer Adresse

@@ -24,10 +24,45 @@ final class NotFoundLog
     /** Dateiendungen, die im Protokoll nur Rauschen wären (fehlende Bilder, Karten, Schriften). */
     private const RAUSCHEN = ['css', 'js', 'map', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'avif', 'ico', 'woff', 'woff2', 'ttf', 'eot'];
 
+    /** Wert im Ausblend-Panel für „ohne Endung" (die Spalte speichert dafür ''). */
+    public const OHNE_ENDUNG = '-';
+
     private ?bool $vorhanden = null;
 
-    public function __construct(private readonly Connection $db)
+    private ?bool $mitEndung = null;
+
+    /** @var list<string> */
+    private readonly array $ohneEndungen;
+
+    /**
+     * @param list<string> $ohneEndungen Konfiguration gozi_alias_redirect.ohne_endungen: Endungen, die gar
+     *                                   nicht erst erfasst werden (Scanner: php, asp, env …)
+     */
+    public function __construct(private readonly Connection $db, array $ohneEndungen = [])
     {
+        $this->ohneEndungen = array_values(array_map(static fn ($e): string => ltrim(strtolower(trim((string) $e)), '.'), $ohneEndungen));
+    }
+
+    /**
+     * Dateiendung der angefragten Adresse, klein und ohne Punkt; '' ohne Endung.
+     *
+     * Aus dem ROHEN Pfad: normalisiere() schneidet .html ab — danach wäre „/seite.html" von „/seite"
+     * nicht mehr zu unterscheiden. Nur [a-z0-9] bis 16 Zeichen; alles andere („/a.b c", „/x.") gilt
+     * als ohne Endung.
+     */
+    public static function endung(string $pfad): string
+    {
+        $pfad = (string) (parse_url($pfad, PHP_URL_PATH) ?? $pfad);
+        $letztes = (string) strrchr('/'.rtrim(rawurldecode($pfad), '/'), '/');
+        $punkt = strrpos($letztes, '.');
+
+        if (false === $punkt) {
+            return '';
+        }
+
+        $endung = strtolower(substr($letztes, $punkt + 1));
+
+        return preg_match('/^[a-z0-9]{1,16}$/', $endung) ? $endung : '';
     }
 
     public function vorhanden(): bool
@@ -41,6 +76,23 @@ final class NotFoundLog
         }
 
         return $this->vorhanden;
+    }
+
+    /**
+     * Gibt es die Spalte „endung" schon? Zwischen Deploy und contao:migrate fehlt sie — das Erfassen
+     * darf in dieser Lücke nicht scheitern, es läuft bei jedem 404.
+     */
+    private function mitEndung(): bool
+    {
+        if (null === $this->mitEndung) {
+            try {
+                $this->mitEndung = isset($this->db->createSchemaManager()->listTableColumns(self::TABELLE)['endung']);
+            } catch (\Throwable) {
+                $this->mitEndung = false;
+            }
+        }
+
+        return $this->mitEndung;
     }
 
     /** Gehört diese Anfrage ins Protokoll? Nur GET/HEAD aus dem Frontend, keine Assets, kein Contao-Innenleben. */
@@ -60,9 +112,9 @@ final class NotFoundLog
                 return false;
             }
         }
-        $endung = strtolower((string) pathinfo(parse_url($pfad, PHP_URL_PATH) ?: $pfad, PATHINFO_EXTENSION));
+        $endung = self::endung($pfad);
 
-        return !\in_array($endung, self::RAUSCHEN, true);
+        return !\in_array($endung, self::RAUSCHEN, true) && !\in_array($endung, $this->ohneEndungen, true);
     }
 
     /**
@@ -75,19 +127,23 @@ final class NotFoundLog
         if (!$this->vorhanden()) {
             return 0;
         }
+        $endung = self::endung($pfad);
         $pfad = $this->normalisiere($pfad);
         $host = mb_substr($host, 0, 255);
         if ('' === $pfad) {
             return 0;
         }
         $jetzt = time();
+        $mitEndung = $this->mitEndung();
         $vorhanden = $this->db->fetchAssociative('SELECT id, erledigt FROM '.self::TABELLE.' WHERE pfad = ? AND host = ? LIMIT 1', [$pfad, $host]);
         if (false !== $vorhanden) {
             // Ein erledigter Eintrag, der WIEDER auflaeuft, ist ein Hinweis: die Weiterleitung greift nicht.
             // Er bleibt deshalb erledigt, wird aber mit Zaehler und Zeitpunkt sichtbar aktuell.
+            // Die Endung nur nachtragen: /seite und /seite.html sind derselbe Eintrag, die erste bekannte bleibt.
             $this->db->executeStatement(
-                'UPDATE '.self::TABELLE.' SET zaehler = zaehler + 1, tstamp = ?, verweis = IF(? <> \'\', ?, verweis) WHERE id = ?',
-                [$jetzt, $verweis, mb_substr($verweis, 0, 255), (int) $vorhanden['id']],
+                'UPDATE '.self::TABELLE.' SET zaehler = zaehler + 1, tstamp = ?, verweis = IF(? <> \'\', ?, verweis)'
+                .($mitEndung ? ', endung = IF(endung = \'\', ?, endung)' : '').' WHERE id = ?',
+                [$jetzt, $verweis, mb_substr($verweis, 0, 255), ...($mitEndung ? [$endung] : []), (int) $vorhanden['id']],
             );
 
             return (int) $vorhanden['id'];
@@ -101,7 +157,7 @@ final class NotFoundLog
             'verweis' => mb_substr($verweis, 0, 255),
             'zaehler' => 1,
             'erledigt' => 0,
-        ]);
+        ] + ($mitEndung ? ['endung' => $endung] : []));
 
         return (int) $this->db->lastInsertId();
     }

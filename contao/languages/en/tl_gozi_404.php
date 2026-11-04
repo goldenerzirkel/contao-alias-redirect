@@ -32,3 +32,6 @@ $GLOBALS['TL_LANG']['tl_gozi_404']['weiterleitungZeigen'] = 'Edit the redirect f
 $GLOBALS['TL_LANG']['tl_gozi_404']['toggle'] = ['Toggle done', 'Mark entry as done'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['show'] = ['Details', 'Show details of entry ID %s'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['delete'] = ['Delete', 'Delete entry ID %s'];
+$GLOBALS['TL_LANG']['tl_gozi_404']['endung'] = ['Extension', 'File extension of the requested address (.html, .php …), empty without one. Entries before 2026-11-04 have no extension for .html: it was stripped on saving.'];
+$GLOBALS['TL_LANG']['tl_gozi_404']['endungenAus'] = 'Hide extensions';
+$GLOBALS['TL_LANG']['tl_gozi_404']['ohneEndung'] = 'no extension';

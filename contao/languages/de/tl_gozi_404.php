@@ -32,3 +32,6 @@ $GLOBALS['TL_LANG']['tl_gozi_404']['weiterleitungZeigen'] = 'Die Weiterleitung z
 $GLOBALS['TL_LANG']['tl_gozi_404']['toggle'] = ['Erledigt an/aus', 'Eintrag als erledigt kennzeichnen'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['show'] = ['Einzelheiten', 'Einzelheiten des Eintrags ID %s anzeigen'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['delete'] = ['Löschen', 'Eintrag ID %s löschen'];
+$GLOBALS['TL_LANG']['tl_gozi_404']['endung'] = ['Endung', 'Dateiendung der angefragten Adresse (.html, .php …), leer ohne Endung. Einträge vor dem 04.11.2026 haben bei .html keine Endung: .html wurde damals beim Speichern abgeschnitten.'];
+$GLOBALS['TL_LANG']['tl_gozi_404']['endungenAus'] = 'Endungen ausblenden';
+$GLOBALS['TL_LANG']['tl_gozi_404']['ohneEndung'] = 'ohne Endung';

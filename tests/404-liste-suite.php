@@ -45,7 +45,8 @@ $callbacks = new NotFoundCallbacks($db, $log, $vonHand, $aliase, $index, new \Go
 $marke = 'zzz404-'.bin2hex(random_bytes(3));
 $seite = 0;
 register_shutdown_function(static function () use ($db, &$seite, $marke, $index): void {
-    $db->executeStatement('DELETE FROM '.NotFoundLog::TABELLE.' WHERE pfad LIKE ?', [$marke.'%']);
+    // Auch mit Sprachpraefix (de/<marke>/…, en/<marke>/…): die Uebersetzungsfaelle laufen ueber /de/ und /en/ auf.
+    $db->executeStatement('DELETE FROM '.NotFoundLog::TABELLE.' WHERE pfad LIKE ? OR pfad LIKE ?', [$marke.'%', '%/'.$marke.'/%']);
     $db->executeStatement('DELETE FROM '.ManualRedirects::TABELLE.' WHERE pfad LIKE ?', [$marke.'%']);
     try { $db->executeStatement('DELETE FROM '.AliasIndex::UEBERSETZUNG.' WHERE alias LIKE ?', [$marke.'%']); } catch (\Throwable) {}
     if ($seite > 0) { $db->delete('tl_page', ['id' => $seite]); }
@@ -65,6 +66,16 @@ ok(!$log->gehoertHinein($anfrage('/files/bild.PNG')), 'Bild, auch in Grossbuchst
 ok($log->gehoertHinein($anfrage('/unternehmen/bericht.pdf')), 'PDF: ja (kann eine umgezogene Datei sein)');
 ok(!$log->gehoertHinein($anfrage('/')), 'Startseite: nein');
 
+echo "\n## Endungen\n";
+ok('html' === NotFoundLog::endung('/a/b.html'), '.html erkannt (vor dem Abschneiden)');
+ok('php' === NotFoundLog::endung('/wp-login.PHP?x=1'), 'Grossbuchstaben und Abfrageteil');
+ok('' === NotFoundLog::endung('/a.b/seite'), 'Punkt nur im Ordnernamen: keine Endung');
+ok('' === NotFoundLog::endung('/a/b.') && '' === NotFoundLog::endung('/a/b.x y'), 'leere oder ungueltige Endung: keine');
+$ohnePhp = new NotFoundLog($db, ['PHP', '.env']);
+ok(!$ohnePhp->gehoertHinein($anfrage('/wp-login.php')) && !$ohnePhp->gehoertHinein($anfrage('/.env')), 'ohne_endungen: php und .env werden nicht erfasst');
+ok($ohnePhp->gehoertHinein($anfrage('/alte-seite.html')), 'ohne_endungen: .html weiter erfasst');
+ok(['php', ''] === Gozi\AliasRedirectBundle\Backend\NotFoundEndungen::bereinigen(['.PHP', NotFoundLog::OHNE_ENDUNG, "x';--", 'php']), 'Ausblend-Auswahl: bereinigt, nichts Fremdes ins SQL');
+ok("endung NOT IN ('php','')" === Gozi\AliasRedirectBundle\Backend\NotFoundEndungen::bedingung(['php', '']), 'Ausblend-Filter als SQL');
 echo "\n## Adressen normalisieren\n";
 ok('a/b' === $log->normalisiere('/a/b/'), 'Schraegstriche aussen weg');
 ok('a/b' === $log->normalisiere('/a/b.html'), '.html weg');
@@ -80,6 +91,9 @@ ok(2 === (int) $db->fetchOne('SELECT zaehler FROM '.NotFoundLog::TABELLE.' WHERE
 ok('https://fremd.example/seite' === (string) $db->fetchOne('SELECT verweis FROM '.NotFoundLog::TABELLE.' WHERE id = ?', [$id]), 'Verweisgeber gemerkt');
 $anderer = $log->erfasse('/'.$marke.'/eins', 'andere.example');
 ok($anderer > 0 && $anderer !== $id, 'gleiche Adresse auf anderem Host: eigener Eintrag');
+$mitEndung = $log->erfasse('/'.$marke.'/endung-test.html', 'test.invalid');
+$log->erfasse('/'.$marke.'/endung-test', 'test.invalid');
+ok('html' === (string) $db->fetchOne('SELECT endung FROM '.NotFoundLog::TABELLE.' WHERE id = ?', [$mitEndung]), 'Endung gespeichert, der spaetere Aufruf ohne .html ueberschreibt sie nicht');
 
 echo "\n## An eine Seite haengen (der Regelweg)\n";
 $root = (int) $db->fetchOne("SELECT id FROM tl_page WHERE type = 'root' AND published = 1 ORDER BY sorting LIMIT 1");
