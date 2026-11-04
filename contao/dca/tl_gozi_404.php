@@ -76,7 +76,7 @@ $GLOBALS['TL_DCA']['tl_gozi_404'] = [
         'default' => '{ziel_legend},zielTyp;{quelle_legend},uebersicht',
     ],
     'subpalettes' => [
-        'zielTyp_'.ManualRedirects::ZIEL_SEITE => 'zielSeite',
+        'zielTyp_'.ManualRedirects::ZIEL_SEITE => 'zielVerweis,code',
         'zielTyp_'.ManualRedirects::ZIEL_URL => 'zielUrl,code',
     ],
     'fields' => [
@@ -128,6 +128,22 @@ $GLOBALS['TL_DCA']['tl_gozi_404'] = [
             'eval' => ['submitOnChange' => true, 'tl_class' => 'w50'],
             'sql' => "varchar(16) NOT NULL default '".ManualRedirects::ZIEL_SEITE."'",
         ],
+        // Ziel aus Contaos Link-Auswahl: das Modal zeigt Tabs für Seiten, Dateien, Nachrichten und Termine.
+        // Gespeichert wird der Verweis als Insert-Tag ({{link_url::12}}, {{news_url::5}}, {{file::…}}).
+        // Eine Seite wird wie bisher alter Alias der Seite, alles andere eine Weiterleitung auf den Verweis.
+        'zielVerweis' => [
+            'exclude' => true,
+            'inputType' => 'text',
+            'eval' => [
+                'mandatory' => false,
+                'rgxp' => 'url',
+                'decodeEntities' => true,
+                'maxlength' => 1022,
+                'dcaPicker' => ['providers' => ['pagePicker', 'newsPicker', 'eventPicker', 'filePicker']],
+                'tl_class' => 'clr long',
+            ],
+            'sql' => "varchar(1022) NOT NULL default ''",
+        ],
         'zielSeite' => [
             'exclude' => true,
             'inputType' => 'pageTree',
@@ -139,7 +155,7 @@ $GLOBALS['TL_DCA']['tl_gozi_404'] = [
         'zielUrl' => [
             'exclude' => true,
             'inputType' => 'text',
-            'eval' => ['rgxp' => 'url', 'dcaPicker' => true, 'decodeEntities' => true, 'maxlength' => 1022, 'tl_class' => 'clr long'],
+            'eval' => ['rgxp' => 'url', 'decodeEntities' => true, 'maxlength' => 1022, 'tl_class' => 'clr long'],
             'sql' => "varchar(1022) NOT NULL default ''",
         ],
         'code' => [

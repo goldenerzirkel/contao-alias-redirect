@@ -50,7 +50,10 @@ final class ManualRedirects
     /**
      * Weiterleitung fuer diese Adresse — passender Host vor leerem Host.
      *
-     * @return array{id:int, zielTyp:string, zielSeite:int, zielUrl:string, code:int}|null
+     * SELECT * statt Spaltenliste: zwischen Deploy und contao:migrate fehlt zielVerweis noch — das
+     * Weiterleiten darf daran nicht scheitern.
+     *
+     * @return array{id:int, zielTyp:string, zielSeite:int, zielVerweis:string, zielUrl:string, code:int}|null
      */
     public function finde(string $pfad, string $host): ?array
     {
@@ -62,7 +65,7 @@ final class ManualRedirects
             return null;
         }
         $zeile = $this->db->fetchAssociative(
-            'SELECT id, zielTyp, zielSeite, zielUrl, code FROM '.self::TABELLE."
+            'SELECT * FROM '.self::TABELLE."
              WHERE aktiv = 1 AND pfad = ? AND (host = ? OR host = '')
              ORDER BY host DESC LIMIT 1",
             [$pfad, $host],
@@ -75,6 +78,7 @@ final class ManualRedirects
             'id' => (int) $zeile['id'],
             'zielTyp' => (string) $zeile['zielTyp'],
             'zielSeite' => (int) $zeile['zielSeite'],
+            'zielVerweis' => trim((string) ($zeile['zielVerweis'] ?? '')),
             'zielUrl' => (string) $zeile['zielUrl'],
             'code' => (int) $zeile['code'],
         ];

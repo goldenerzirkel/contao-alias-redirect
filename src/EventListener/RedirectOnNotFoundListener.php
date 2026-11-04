@@ -14,6 +14,7 @@ use Contao\FaqModel;
 use Contao\NewsModel;
 use Contao\PageModel;
 use Doctrine\DBAL\Connection;
+use Gozi\AliasRedirectBundle\Backend\NotFoundCallbacks;
 use Gozi\AliasRedirectBundle\Service\AliasIndex;
 use Gozi\AliasRedirectBundle\Service\AliasRedirects;
 use Gozi\AliasRedirectBundle\Service\ManualRedirects;
@@ -240,8 +241,17 @@ final class RedirectOnNotFoundListener
             return new Response('Gone', Response::HTTP_GONE, ['Cache-Control' => 'public, max-age=3600']);
         }
 
-        if (ManualRedirects::ZIEL_URL === $eintrag['zielTyp']) {
-            $ziel = $this->zielAusVerweis($eintrag['zielUrl'], $request);
+        // „Seite, Nachricht, Termin oder Datei" aus der Link-Auswahl; ohne Verweis (ältere Einträge) über zielSeite unten.
+        $verweis = ManualRedirects::ZIEL_SEITE === $eintrag['zielTyp'] ? $eintrag['zielVerweis'] : '';
+
+        // Eine Seite aus der Auswahl geht den Seitenweg unten — dort wird die Zielsprache gesetzt.
+        if (null !== ($seitenId = NotFoundCallbacks::seiteAusVerweis($verweis))) {
+            $eintrag['zielSeite'] = $seitenId;
+            $verweis = '';
+        }
+
+        if (ManualRedirects::ZIEL_URL === $eintrag['zielTyp'] || '' !== $verweis) {
+            $ziel = $this->zielAusVerweis('' !== $verweis ? $verweis : $eintrag['zielUrl'], $request);
             if (null === $ziel) {
                 return null;
             }

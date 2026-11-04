@@ -13,11 +13,11 @@ $GLOBALS['TL_LANG']['tl_gozi_404']['ziel_legend'] = 'Weiterleiten auf';
 $GLOBALS['TL_LANG']['tl_gozi_404']['quelle_legend'] = 'Die aufgelaufene Adresse';
 $GLOBALS['TL_LANG']['tl_gozi_404']['zielTyp'] = ['Ziel', 'Eine Seite dieser Installation, eine beliebige Adresse (auch auf einem fremden Server) oder gar kein Ziel.'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['zielSeite'] = ['Seite', 'Die Adresse wird als alter Alias an diese Seite gehängt (Feld „Weiterleitungen auf diese Seite"). Dort steht sie danach zusammen mit allen anderen alten Adressen dieser Seite.'];
-$GLOBALS['TL_LANG']['tl_gozi_404']['zielUrl'] = ['Zieladresse', 'Vollständige Adresse mit http(s)://, oder über das Auswahlsymbol eine Seite, Datei, Nachricht oder einen Termin dieser Installation. Ein Alias kann nur auf eine Seite dieser Installation zeigen — für eine fremde Adresse entsteht deshalb im Hintergrund ein Eintrag unter „Weiterleitungen".'];
+$GLOBALS['TL_LANG']['tl_gozi_404']['zielUrl'] = ['Zieladresse', 'Vollständige Adresse mit http(s)://. Ein Alias kann nur auf eine Seite dieser Installation zeigen — für eine fremde Adresse entsteht deshalb im Hintergrund ein Eintrag unter „Weiterleitungen".'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['code'] = ['Art der Weiterleitung', '301 sagt Suchmaschinen, dass die Adresse dauerhaft umgezogen ist. 302/303/307 sind vorübergehend.'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['zielTypen'] = [
-    'seite' => 'Seite in diesem System',
-    'url' => 'Adresse, Datei, Nachricht oder Termin',
+    'seite' => 'Seite, Nachricht, Termin oder Datei',
+    'url' => 'Beliebige Adresse (extern)',
     'gone' => 'Kein Ziel (410 Gone)',
 ];
 $GLOBALS['TL_LANG']['tl_gozi_404']['uebersicht'] = ['Übersicht', ''];
@@ -37,3 +37,4 @@ $GLOBALS['TL_LANG']['tl_gozi_404']['endungenAus'] = 'Endungen ausblenden';
 $GLOBALS['TL_LANG']['tl_gozi_404']['ohneEndung'] = 'ohne Endung';
 $GLOBALS['TL_LANG']['tl_gozi_404']['endungen'] = ['' => '(ohne Endung)'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['alleMarkieren'] = 'Alle markieren';
+$GLOBALS['TL_LANG']['tl_gozi_404']['zielVerweis'] = ['Ziel', 'Über das Auswahlsymbol eine Seite, Nachricht, einen Termin oder eine Datei wählen (Reiter oben im Fenster). Eine Seite bekommt die Adresse als alten Alias; Nachricht, Termin und Datei werden als Weiterleitung auf den Verweis angelegt. Der Verweis bleibt richtig, wenn das Ziel umbenannt wird.'];

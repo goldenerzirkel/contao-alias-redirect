@@ -223,6 +223,18 @@ ok(0 === $callbacks->schreibeEigeneWeiterleitung($extern), 'leere Adresse legt n
 $callbacks->hefteAnSeite($extern, $seite);
 ok(false === $db->fetchOne('SELECT id FROM '.ManualRedirects::TABELLE.' WHERE id = ?', [$neu]), 'Wechsel zurueck auf eine Seite raeumt die eigene Weiterleitung weg');
 
+echo "\n## Ziel aus der Link-Auswahl (Seite, Nachricht, Termin, Datei)\n";
+ok(12 === NotFoundCallbacks::seiteAusVerweis('{{link_url::12}}') && 12 === NotFoundCallbacks::seiteAusVerweis('{{link_url::12|absolute}}'), 'Seite im Verweis erkannt');
+ok(null === NotFoundCallbacks::seiteAusVerweis('{{news_url::5}}') && null === NotFoundCallbacks::seiteAusVerweis('https://x.test'), 'Nachricht und Adresse sind keine Seite');
+$presse = $log->erfasse('/'.$marke.'/presse-alt', '' !== $dns ? $dns : 'example.org');
+$db->update(NotFoundLog::TABELLE, ['zielTyp' => ManualRedirects::ZIEL_SEITE, 'zielVerweis' => '{{news_url::999999}}', 'code' => '301'], ['id' => $presse]);
+$ausVerweis = $callbacks->schreibeEigeneWeiterleitung($presse);
+$w = $db->fetchAssociative('SELECT * FROM '.ManualRedirects::TABELLE.' WHERE id = ?', [$ausVerweis]);
+ok($ausVerweis > 0 && false !== $w && '{{news_url::999999}}' === $w['zielVerweis'] && ManualRedirects::ZIEL_SEITE === $w['zielTyp'], 'Nachricht gewaehlt: Weiterleitung auf den Verweis angelegt', print_r($w, true));
+ok(1 === (int) $db->fetchOne('SELECT erledigt FROM '.NotFoundLog::TABELLE.' WHERE id = ?', [$presse]), '404-Eintrag gilt als erledigt');
+$db->update(NotFoundLog::TABELLE, ['zielVerweis' => '{{link_url::'.$seite.'}}'], ['id' => $presse]);
+ok(0 === $callbacks->schreibeEigeneWeiterleitung($presse), 'Seite gewaehlt: keine eigene Weiterleitung (Alias-Weg)');
+
 echo "\n## Eigene Weiterleitungen\n";
 $db->insert(ManualRedirects::TABELLE, ['tstamp' => time(), 'aktiv' => 1, 'pfad' => $marke.'/extern', 'host' => '', 'zielTyp' => ManualRedirects::ZIEL_URL, 'zielUrl' => 'https://example.org/ziel', 'code' => '302']);
 $ohneHost = (int) $db->lastInsertId();
@@ -280,6 +292,15 @@ if ('' === $dns) {
         $r = $hole('/'.$marke.'/http-tag-news');
         ok(301 === $r['code'] && str_starts_with($r['ziel'], 'http'), 'Auswahl Nachricht ({{news_url}}): 301', $r['code'].' '.$r['ziel']);
     }
+
+    if (false !== $nachricht) {
+        $db->insert(ManualRedirects::TABELLE, ['tstamp' => time(), 'aktiv' => 1, 'pfad' => $marke.'/http-auswahl-news', 'host' => $dns, 'zielTyp' => ManualRedirects::ZIEL_SEITE, 'zielSeite' => 0, 'zielVerweis' => '{{news_url::'.$nachricht.'}}', 'code' => '301']);
+        $r = $hole('/'.$marke.'/http-auswahl-news');
+        ok(301 === $r['code'] && str_starts_with($r['ziel'], 'http') && !str_ends_with($r['ziel'], '?'), 'Typ „Seite, Nachricht …" mit Nachricht aus der Auswahl: 301', $r['code'].' '.$r['ziel']);
+    }
+    $db->insert(ManualRedirects::TABELLE, ['tstamp' => time(), 'aktiv' => 1, 'pfad' => $marke.'/http-auswahl-seite', 'host' => $dns, 'zielTyp' => ManualRedirects::ZIEL_SEITE, 'zielSeite' => 0, 'zielVerweis' => '{{link_url::'.$seite.'}}', 'code' => '301']);
+    $r = $hole('/'.$marke.'/http-auswahl-seite');
+    ok(301 === $r['code'] && str_contains($r['ziel'], $marke.'-ziel'), 'Typ „Seite …" mit Seite aus der Auswahl: 301 über den Seitenweg', $r['code'].' '.$r['ziel']);
 
     $db->insert(ManualRedirects::TABELLE, ['tstamp' => time(), 'aktiv' => 1, 'pfad' => $marke.'/http-tag-weg', 'host' => $dns, 'zielTyp' => ManualRedirects::ZIEL_URL, 'zielUrl' => '{{news_url::999999999}}', 'code' => '301']);
     $r = $hole('/'.$marke.'/http-tag-weg');

@@ -11,7 +11,7 @@ $GLOBALS['TL_LANG']['tl_gozi_redirect']['pfad'] = ['Old address', 'The path with
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['host'] = ['Host', 'For this host only, e.g. "de.pons.com". Leave empty to apply on all hosts.'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['zielTyp'] = ['Type of target', 'A page in the page tree, any address, or no target at all (410 Gone).'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['zielSeite'] = ['Target page', 'The page to redirect to — in any page tree.'];
-$GLOBALS['TL_LANG']['tl_gozi_redirect']['zielUrl'] = ['Target address', 'Full address including http(s)://, or pick a page, file, news item or event of this installation with the picker icon. The pick is stored as a reference, so the redirect still works after the target is renamed.'];
+$GLOBALS['TL_LANG']['tl_gozi_redirect']['zielUrl'] = ['Target address', 'Full address including http(s)://.'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['code'] = ['Type of redirect', '301 tells search engines the address has moved permanently. 302/303/307 are temporary.'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['hinweis'] = ['Note', 'Why this redirect was created — visible to editors only.'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['aktiv'] = ['Active', 'Only active redirects apply.'];
@@ -19,8 +19,8 @@ $GLOBALS['TL_LANG']['tl_gozi_redirect']['zaehler'] = ['Hits', 'How often the red
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['letzter'] = ['Last hit', 'When the redirect applied last.'];
 
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['zielTypen'] = [
-    'seite' => 'Page in the page tree',
-    'url' => 'Address, file, news or event',
+    'seite' => 'Page, news, event or file',
+    'url' => 'Any address',
     'gone' => 'No target (410 Gone)',
 ];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['codes'] = [
@@ -37,3 +37,4 @@ $GLOBALS['TL_LANG']['tl_gozi_redirect']['copy'] = ['Duplicate', 'Duplicate redir
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['delete'] = ['Delete', 'Delete redirect ID %s'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['toggle'] = ['Toggle active', 'Enable or disable redirect ID %s'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['show'] = ['Details', 'Show details of redirect ID %s'];
+$GLOBALS['TL_LANG']['tl_gozi_redirect']['zielVerweis'] = ['Target', 'Pick a page, news item, event or file with the picker icon (tabs at the top of the window). A page gets the address as an old alias; news, events and files become a redirect to the reference, which stays correct when the target is renamed.'];

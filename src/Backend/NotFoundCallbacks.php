@@ -50,6 +50,50 @@ final class NotFoundCallbacks
     }
 
     /**
+     * Ziel aus Contaos Link-Auswahl (Tabs Seiten, Dateien, Nachrichten, Termine).
+     *
+     * Eine Seite ({{link_url::12}}) geht den Regelweg: die Adresse wird alter Alias an der Seite, mit
+     * denselben Pruefungen wie im Seitenbaum-Feld. Nachricht, Termin oder Datei koennen kein Alias einer
+     * Seite sein — daraus macht uebernehmeEigenesZiel() eine Weiterleitung auf den Verweis.
+     */
+    #[AsCallback(table: 'tl_gozi_404', target: 'fields.zielVerweis.save')]
+    public function speichereZielVerweis(mixed $wert, DataContainer $dc): string
+    {
+        $wert = trim((string) $wert);
+        $seite = self::seiteAusVerweis($wert);
+
+        if (null !== $seite) {
+            $this->hefteAnSeite((int) $dc->id, $seite);
+            $this->db->update(NotFoundLog::TABELLE, ['zielSeite' => $seite], ['id' => (int) $dc->id]);
+        }
+
+        return $wert;
+    }
+
+    /**
+     * Ältere Einträge kennen nur zielSeite: im Feld als Verweis zeigen, damit die Auswahl sie öffnet und
+     * ein Speichern nichts verliert.
+     */
+    #[AsCallback(table: 'tl_gozi_404', target: 'fields.zielVerweis.load')]
+    #[AsCallback(table: 'tl_gozi_redirect', target: 'fields.zielVerweis.load')]
+    public function ladeZielVerweis(mixed $wert, DataContainer $dc): string
+    {
+        $wert = (string) $wert;
+
+        if ('' === $wert && (int) ($dc->activeRecord?->zielSeite ?? 0) > 0) {
+            return '{{link_url::'.(int) $dc->activeRecord->zielSeite.'}}';
+        }
+
+        return $wert;
+    }
+
+    /** Seiten-ID aus {{link_url::12}} (auch mit Zusatz wie |absolute), sonst null. */
+    public static function seiteAusVerweis(string $verweis): ?int
+    {
+        return 1 === preg_match('/^\{\{link_url::(\d+)(\|[a-z]+)?\}\}$/', trim($verweis), $t) ? (int) $t[1] : null;
+    }
+
+    /**
      * Der Kern des Callbacks, ohne DataContainer — so ist er aus der Testsuite heraus aufrufbar.
      *
      * @throws \InvalidArgumentException mit der Meldung, die im Backend am Feld erscheint
@@ -356,14 +400,16 @@ final class NotFoundCallbacks
             return 0;
         }
         $typ = (string) ($satz['zielTyp'] ?? ManualRedirects::ZIEL_SEITE);
-        if (ManualRedirects::ZIEL_SEITE === $typ) {
-            return 0; // den Alias-Weg erledigt der save_callback am Seitenfeld
+        $verweis = trim((string) ($satz['zielVerweis'] ?? ''));
+        if (ManualRedirects::ZIEL_SEITE === $typ && ('' === $verweis || null !== self::seiteAusVerweis($verweis))) {
+            return 0; // eine Seite: den Alias-Weg erledigt der save_callback am Auswahlfeld
         }
         $ziel = trim((string) ($satz['zielUrl'] ?? ''));
         if (ManualRedirects::ZIEL_URL === $typ && '' === $ziel) {
             return 0; // beim Umschalten der Auswahl ist das Feld noch leer
         }
 
+        // Nachricht, Termin oder Datei aus der Auswahl: eigene Weiterleitung auf den Verweis.
         $daten = [
             'tstamp' => time(),
             'aktiv' => 1,
@@ -371,6 +417,7 @@ final class NotFoundCallbacks
             'host' => (string) $satz['host'],
             'zielTyp' => $typ,
             'zielSeite' => 0,
+            'zielVerweis' => ManualRedirects::ZIEL_SEITE === $typ ? $verweis : '',
             'zielUrl' => ManualRedirects::ZIEL_URL === $typ ? $ziel : '',
             'code' => '' !== (string) ($satz['code'] ?? '') ? (string) $satz['code'] : '301',
             'aus404' => $logId,

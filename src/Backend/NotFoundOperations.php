@@ -79,7 +79,11 @@ final class NotFoundOperations
     private function zielInWorten(array $row): string
     {
         $typ = (string) ($row['zielTyp'] ?? '');
+        $verweis = trim((string) ($row['zielVerweis'] ?? ''));
 
+        if (ManualRedirects::ZIEL_SEITE === $typ && '' !== $verweis && null === NotFoundCallbacks::seiteAusVerweis($verweis)) {
+            return '→ '.StringUtil::specialchars($this->verweisInWorten($verweis));
+        }
         if (ManualRedirects::ZIEL_SEITE === $typ && (int) ($row['zielSeite'] ?? 0) > 0) {
             $titel = (string) $this->db->fetchOne('SELECT title FROM tl_page WHERE id = ?', [(int) $row['zielSeite']]);
 
@@ -145,5 +149,22 @@ final class NotFoundOperations
         }
 
         return $this->router->generate('contao_backend', $parameter);
+    }
+    /** Nachricht, Termin oder Datei aus der Link-Auswahl in Worten: Titel bzw. Pfad statt Insert-Tag. */
+    private function verweisInWorten(string $verweis): string
+    {
+        if (1 !== preg_match('/^\{\{(news_url|event_url|file)::([^}|]+)/', $verweis, $t)) {
+            return $verweis;
+        }
+
+        try {
+            return match ($t[1]) {
+                'news_url' => 'Nachricht: '.($this->db->fetchOne('SELECT headline FROM tl_news WHERE id = ?', [(int) $t[2]]) ?: '#'.$t[2]),
+                'event_url' => 'Termin: '.($this->db->fetchOne('SELECT title FROM tl_calendar_events WHERE id = ?', [(int) $t[2]]) ?: '#'.$t[2]),
+                'file' => 'Datei: '.($this->db->fetchOne('SELECT path FROM tl_files WHERE uuid = UNHEX(REPLACE(?, \'-\', \'\'))', [$t[2]]) ?: $t[2]),
+            };
+        } catch (\Throwable) {
+            return $verweis; // Tabelle fehlt (Bundle nicht installiert)
+        }
     }
 }

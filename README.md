@@ -59,13 +59,15 @@ Im Navigationsbereich **Weiterleitungen** stehen zwei Punkte.
 Domain, mit Zähler, Verweisgeber und Zeitpunkt. **Ziel festlegen** öffnet eine Maske mit drei
 Möglichkeiten:
 
-* **Seite in diesem System** — der Regelweg. Eine Seite wählen, speichern: die Adresse steht danach im
-  Feld *Weiterleitungen auf diese Seite* dieser Seite, zusammen mit allen anderen alten Adressen.
-* **Adresse, Datei, Nachricht oder Termin** — eine vollständige Adresse, auch auf einem fremden Server,
-  oder über das Auswahlsymbol (Contaos Link-Auswahl) eine Seite, Datei, Nachricht oder einen Termin. Die
-  Auswahl bleibt als Verweis gespeichert (`{{news_url::5}}`, `{{file::…}}`), die Weiterleitung stimmt also
-  auch nach dem Umbenennen des Ziels; ist das Ziel gelöscht oder unveröffentlicht, bleibt es beim 404.
-  Mit wählbarer Art der Weiterleitung (301, 302, 303, 307, 308). Ein Alias kann immer nur auf eine Seite
+* **Seite, Nachricht, Termin oder Datei** — der Regelweg. Das Auswahlsymbol öffnet Contaos Link-Auswahl
+  mit den Reitern *Seiten*, *Nachrichten*, *Events* und *Dateien*:
+  * eine **Seite** wählen, speichern: die Adresse steht danach im Feld *Weiterleitungen auf diese Seite*
+    dieser Seite, zusammen mit allen anderen alten Adressen;
+  * eine **Nachricht**, einen **Termin** oder eine **Datei** wählen — etwa für alte Presse-Adressen die
+    Pressemitteilung: es entsteht eine Weiterleitung auf diesen Verweis (`{{news_url::5}}`). Sie stimmt
+    auch nach dem Umbenennen des Ziels; ist es gelöscht oder unveröffentlicht, bleibt es beim 404.
+* **Beliebige Adresse (extern)** — eine vollständige Adresse, auch auf einem fremden Server, mit
+  wählbarer Art der Weiterleitung (301, 302, 303, 307, 308). Ein Alias kann immer nur auf eine Seite
   dieser Installation zeigen; im Hintergrund entsteht deshalb ein Eintrag unter *Weiterleitungen*.
 * **Kein Ziel (410 Gone)** — die Adresse ist bewusst weg.
 
