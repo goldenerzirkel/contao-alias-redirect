@@ -114,7 +114,7 @@ $GLOBALS['TL_DCA']['tl_gozi_redirect'] = [
         'zielUrl' => [
             'exclude' => true,
             'inputType' => 'text',
-            'eval' => ['mandatory' => true, 'rgxp' => 'url', 'decodeEntities' => true, 'maxlength' => 1022, 'tl_class' => 'clr long'],
+            'eval' => ['mandatory' => true, 'rgxp' => 'url', 'dcaPicker' => true, 'decodeEntities' => true, 'maxlength' => 1022, 'tl_class' => 'clr long'],
             'sql' => "varchar(1022) NOT NULL default ''",
         ],
         'code' => [

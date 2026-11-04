@@ -67,8 +67,19 @@ final class NotFoundEndungen
             return '';
         }
 
-        $html = '<fieldset class="tl_filter tl_subpanel gozi-endungen"><legend>'.StringUtil::specialchars($GLOBALS['TL_LANG']['tl_gozi_404']['endungenAus'] ?? 'Endungen ausblenden').'</legend>'
-            .'<input type="hidden" name="'.self::FELD.'_gesendet" value="1">';
+        $zeilen = self::ohneEndungZuerst($zeilen);
+        $lang = $GLOBALS['TL_LANG']['tl_gozi_404'] ?? [];
+
+        // „Alle markieren": Inline-Handler wie Contaos eigene Lösch-Bestätigungen — er läuft in 5.3 (MooTools)
+        // und 5.7 (Stimulus) gleich; der check-all-Controller fehlt in 5.3. Danach einzelne Haken entfernen.
+        $alle = 'this.closest(\'fieldset\').querySelectorAll(\'input[name="'.self::FELD.'[]"]\').forEach(c=>c.checked=this.checked)';
+
+        $html = '<fieldset class="tl_filter tl_subpanel gozi-endungen"><legend>'.StringUtil::specialchars($lang['endungenAus'] ?? 'Endungen ausblenden').'</legend>'
+            .'<input type="hidden" name="'.self::FELD.'_gesendet" value="1">'
+            .'<label style="display:block;margin-bottom:.4em;font-weight:600"><input type="checkbox" onclick="'.StringUtil::specialchars($alle).'"'
+            .(\count($aus) === \count($zeilen) ? ' checked' : '').'> '.StringUtil::specialchars($lang['alleMarkieren'] ?? 'Alle markieren').'</label>'
+            // Bei vielen Endungen (PONS: rund 100) nicht die ganze Seite füllen.
+            .'<div style="max-height:12em;overflow-y:auto">';
 
         foreach ($zeilen as $endung => $anzahl) {
             $endung = (string) $endung;
@@ -82,7 +93,31 @@ final class NotFoundEndungen
             );
         }
 
-        return $html.'</fieldset>';
+        return $html.'</div></fieldset>';
+    }
+
+    /**
+     * „ohne Endung" an den Anfang, sonst nach Zahl — die eigentlichen Seitenadressen stehen damit oben.
+     *
+     * @param array<string|int, int|string> $zeilen Endung => Anzahl
+     *
+     * @return array<string, int>
+     */
+    public static function ohneEndungZuerst(array $zeilen): array
+    {
+        $sortiert = [];
+
+        if (\array_key_exists('', $zeilen)) {
+            $sortiert[''] = (int) $zeilen[''];
+        }
+
+        foreach ($zeilen as $endung => $anzahl) {
+            if ('' !== (string) $endung) {
+                $sortiert[(string) $endung] = (int) $anzahl;
+            }
+        }
+
+        return $sortiert;
     }
 
     /**

@@ -256,11 +256,34 @@ if ('' === $dns) {
 
     $db->insert(ManualRedirects::TABELLE, ['tstamp' => time(), 'aktiv' => 1, 'pfad' => $marke.'/http-url', 'host' => $dns, 'zielTyp' => ManualRedirects::ZIEL_URL, 'zielUrl' => 'https://example.org/gelandet', 'code' => '301']);
     $r = $hole('/'.$marke.'/http-url');
-    ok(301 === $r['code'] && str_contains($r['ziel'], 'example.org/gelandet'), 'eigene Weiterleitung auf eine Adresse: 301', $r['code'].' '.$r['ziel']);
+    ok(301 === $r['code'] && 'https://example.org/gelandet' === $r['ziel'], 'eigene Weiterleitung auf eine Adresse: 301, genau diese Adresse (kein leeres ?)', $r['code'].' '.$r['ziel']);
 
     $db->insert(ManualRedirects::TABELLE, ['tstamp' => time(), 'aktiv' => 1, 'pfad' => $marke.'/http-seite', 'host' => $dns, 'zielTyp' => ManualRedirects::ZIEL_SEITE, 'zielSeite' => $seite, 'code' => '301']);
     $r = $hole('/'.$marke.'/http-seite');
     ok(301 === $r['code'] && str_contains($r['ziel'], $marke.'-ziel'), 'eigene Weiterleitung auf eine Seite: 301 auf deren Adresse', $r['code'].' '.$r['ziel']);
+
+    // Verweise aus Contaos Link-Auswahl (dcaPicker): als Insert-Tag gespeichert, beim Weiterleiten aufgeloest.
+    $db->insert(ManualRedirects::TABELLE, ['tstamp' => time(), 'aktiv' => 1, 'pfad' => $marke.'/http-tag-seite', 'host' => $dns, 'zielTyp' => ManualRedirects::ZIEL_URL, 'zielUrl' => '{{link_url::'.$seite.'}}', 'code' => '301']);
+    $r = $hole('/'.$marke.'/http-tag-seite');
+    ok(301 === $r['code'] && str_starts_with($r['ziel'], 'https://') && str_contains($r['ziel'], $marke.'-ziel'), 'Auswahl Seite ({{link_url}}): 301 auf die absolute Adresse', $r['code'].' '.$r['ziel']);
+
+    $datei = $db->fetchAssociative("SELECT uuid, path FROM tl_files WHERE type = 'file' AND path LIKE 'files/%' LIMIT 1");
+    if (false !== $datei) {
+        $db->insert(ManualRedirects::TABELLE, ['tstamp' => time(), 'aktiv' => 1, 'pfad' => $marke.'/http-tag-datei', 'host' => $dns, 'zielTyp' => ManualRedirects::ZIEL_URL, 'zielUrl' => '{{file::'.\Contao\StringUtil::binToUuid($datei['uuid']).'}}', 'code' => '301']);
+        $r = $hole('/'.$marke.'/http-tag-datei');
+        ok(301 === $r['code'] && str_ends_with(rawurldecode($r['ziel']), '/'.$datei['path']), 'Auswahl Datei ({{file}}): 301 auf den Dateipfad', $r['code'].' '.$r['ziel']);
+    }
+
+    $nachricht = $db->fetchOne('SELECT n.id FROM tl_news n JOIN tl_news_archive a ON a.id = n.pid WHERE n.published = 1 AND a.jumpTo > 0 LIMIT 1');
+    if (false !== $nachricht) {
+        $db->insert(ManualRedirects::TABELLE, ['tstamp' => time(), 'aktiv' => 1, 'pfad' => $marke.'/http-tag-news', 'host' => $dns, 'zielTyp' => ManualRedirects::ZIEL_URL, 'zielUrl' => '{{news_url::'.$nachricht.'}}', 'code' => '301']);
+        $r = $hole('/'.$marke.'/http-tag-news');
+        ok(301 === $r['code'] && str_starts_with($r['ziel'], 'http'), 'Auswahl Nachricht ({{news_url}}): 301', $r['code'].' '.$r['ziel']);
+    }
+
+    $db->insert(ManualRedirects::TABELLE, ['tstamp' => time(), 'aktiv' => 1, 'pfad' => $marke.'/http-tag-weg', 'host' => $dns, 'zielTyp' => ManualRedirects::ZIEL_URL, 'zielUrl' => '{{news_url::999999999}}', 'code' => '301']);
+    $r = $hole('/'.$marke.'/http-tag-weg');
+    ok(404 === $r['code'], 'Auswahl ins Leere (geloeschtes Ziel): bleibt 404', (string) $r['code']);
 
     $db->insert(ManualRedirects::TABELLE, ['tstamp' => time(), 'aktiv' => 1, 'pfad' => $marke.'/http-weg', 'host' => $dns, 'zielTyp' => ManualRedirects::ZIEL_GONE, 'code' => '301']);
     $r = $hole('/'.$marke.'/http-weg');

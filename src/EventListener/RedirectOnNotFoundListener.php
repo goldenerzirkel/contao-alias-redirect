@@ -6,6 +6,7 @@ namespace Gozi\AliasRedirectBundle\EventListener;
 
 use Contao\CoreBundle\Exception\PageNotFoundException;
 use Contao\CoreBundle\Framework\ContaoFramework;
+use Contao\CoreBundle\InsertTag\InsertTagParser;
 use Contao\CoreBundle\Routing\ContentUrlGenerator;
 use Contao\CoreBundle\Routing\ScopeMatcher;
 use Contao\CalendarEventsModel;
@@ -49,6 +50,7 @@ final class RedirectOnNotFoundListener
         private readonly Connection $db,
         private readonly AliasIndex $index,
         private readonly ManualRedirects $vonHand,
+        private readonly InsertTagParser $insertTags,
     ) {
     }
 
@@ -213,7 +215,7 @@ final class RedirectOnNotFoundListener
         } catch (\Throwable) {
             return null;
         }
-        if ('' !== $request->getQueryString()) {
+        if ('' !== (string) $request->getQueryString()) { // ohne Query liefert Symfony null, nicht ''
             $ziel .= (str_contains($ziel, '?') ? '&' : '?').$request->getQueryString();
         }
         // Nie auf sich selbst — sonst Schleife.
@@ -239,7 +241,10 @@ final class RedirectOnNotFoundListener
         }
 
         if (ManualRedirects::ZIEL_URL === $eintrag['zielTyp']) {
-            $ziel = $eintrag['zielUrl'];
+            $ziel = $this->zielAusVerweis($eintrag['zielUrl'], $request);
+            if (null === $ziel) {
+                return null;
+            }
         } else {
             $this->framework->initialize();
             $seite = $this->framework->getAdapter(PageModel::class)->findPublishedById($eintrag['zielSeite']);
@@ -263,7 +268,7 @@ final class RedirectOnNotFoundListener
             }
         }
 
-        if ('' !== $request->getQueryString()) {
+        if ('' !== (string) $request->getQueryString()) { // ohne Query liefert Symfony null, nicht ''
             $ziel .= (str_contains($ziel, '?') ? '&' : '?').$request->getQueryString();
         }
         // Nie auf sich selbst — sonst Schleife.
@@ -315,7 +320,7 @@ final class RedirectOnNotFoundListener
         } catch (\Throwable) {
             return null;
         }
-        if ('' !== $request->getQueryString()) {
+        if ('' !== (string) $request->getQueryString()) { // ohne Query liefert Symfony null, nicht ''
             $ziel .= (str_contains($ziel, '?') ? '&' : '?').$request->getQueryString();
         }
         if (parse_url($ziel, PHP_URL_PATH) === $request->getPathInfo()) {
@@ -361,7 +366,7 @@ final class RedirectOnNotFoundListener
         } catch (\Throwable) {
             return null;
         }
-        if ('' !== $request->getQueryString()) {
+        if ('' !== (string) $request->getQueryString()) { // ohne Query liefert Symfony null, nicht ''
             $ziel .= (str_contains($ziel, '?') ? '&' : '?').$request->getQueryString();
         }
         if (parse_url($ziel, PHP_URL_PATH) === $request->getPathInfo()) {
@@ -424,5 +429,31 @@ final class RedirectOnNotFoundListener
         );
 
         return array_map(static fn ($z) => (int) $z['id'], $zeilen);
+    }
+    /**
+     * Zieladresse aus dem Feld zielUrl — eine feste Adresse oder ein Verweis aus Contaos Link-Auswahl.
+     *
+     * Die Auswahl (dcaPicker) speichert Seiten, Dateien, Nachrichten und Termine als Insert-Tag
+     * ({{link_url::12}}, {{file::<uuid>}}, {{news_url::5}}, {{event_url::7}}). So bleibt die Weiterleitung
+     * richtig, wenn jemand das Ziel umbenennt. Die Tags liefern meist eine relative Adresse; ein
+     * RedirectResponse braucht eine absolute, deshalb Schema und Host der Anfrage davor. Ergibt der Tag
+     * nichts (Ziel gelöscht oder unveröffentlicht), gibt es keine Weiterleitung — dann bleibt es beim 404.
+     */
+    private function zielAusVerweis(string $ziel, Request $request): ?string
+    {
+        if (str_contains($ziel, '{{')) {
+            $this->framework->initialize();
+            $ziel = trim($this->insertTags->replaceInline($ziel));
+        }
+
+        if ('' === $ziel || str_contains($ziel, '{{')) {
+            return null;
+        }
+
+        if (!preg_match('#^[a-z][a-z0-9+.-]*://#i', $ziel)) {
+            $ziel = $request->getSchemeAndHttpHost().$request->getBasePath().'/'.ltrim($ziel, '/');
+        }
+
+        return $ziel;
     }
 }

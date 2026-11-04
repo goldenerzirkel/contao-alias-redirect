@@ -96,6 +96,9 @@ $GLOBALS['TL_DCA']['tl_gozi_404'] = [
         'endung' => [
             'filter' => true,
             'sorting' => true,
+            // Leerer Wert als „(ohne Endung)": Contao sortiert die Filteroptionen nach Beschriftung, die
+            // Klammer steht vor Buchstaben und Ziffern — die eigentlichen Seitenadressen stehen damit oben.
+            'reference' => &$GLOBALS['TL_LANG']['tl_gozi_404']['endungen'],
             'sql' => "varchar(16) NOT NULL default ''",
         ],
         'host' => [
@@ -136,7 +139,7 @@ $GLOBALS['TL_DCA']['tl_gozi_404'] = [
         'zielUrl' => [
             'exclude' => true,
             'inputType' => 'text',
-            'eval' => ['rgxp' => 'url', 'decodeEntities' => true, 'maxlength' => 1022, 'tl_class' => 'clr long'],
+            'eval' => ['rgxp' => 'url', 'dcaPicker' => true, 'decodeEntities' => true, 'maxlength' => 1022, 'tl_class' => 'clr long'],
             'sql' => "varchar(1022) NOT NULL default ''",
         ],
         'code' => [

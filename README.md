@@ -61,8 +61,11 @@ Möglichkeiten:
 
 * **Seite in diesem System** — der Regelweg. Eine Seite wählen, speichern: die Adresse steht danach im
   Feld *Weiterleitungen auf diese Seite* dieser Seite, zusammen mit allen anderen alten Adressen.
-* **Beliebige Adresse (extern)** — eine vollständige Adresse, auch auf einem fremden Server, mit
-  wählbarer Art der Weiterleitung (301, 302, 303, 307, 308). Ein Alias kann immer nur auf eine Seite
+* **Adresse, Datei, Nachricht oder Termin** — eine vollständige Adresse, auch auf einem fremden Server,
+  oder über das Auswahlsymbol (Contaos Link-Auswahl) eine Seite, Datei, Nachricht oder einen Termin. Die
+  Auswahl bleibt als Verweis gespeichert (`{{news_url::5}}`, `{{file::…}}`), die Weiterleitung stimmt also
+  auch nach dem Umbenennen des Ziels; ist das Ziel gelöscht oder unveröffentlicht, bleibt es beim 404.
+  Mit wählbarer Art der Weiterleitung (301, 302, 303, 307, 308). Ein Alias kann immer nur auf eine Seite
   dieser Installation zeigen; im Hintergrund entsteht deshalb ein Eintrag unter *Weiterleitungen*.
 * **Kein Ziel (410 Gone)** — die Adresse ist bewusst weg.
 
@@ -94,8 +97,10 @@ der Liste gibt es zwei Werkzeuge dafür:
 * **Filter *Endung*** zeigt nur eine Endung, etwa nur `.html`. Das sind die alten Seitenadressen, um die
   es beim Weiterleiten meist geht.
 * **Endungen ausblenden** blendet mehrere Endungen auf einmal aus: Haken bei `.php`, `.asp`, `.env`
-  setzen, dann *Anwenden*. Die Zahl hinter jeder Endung nennt die offenen Einträge. Die Auswahl gilt für
-  die Sitzung, bis *Zurücksetzen*.
+  setzen, dann *Anwenden*. *Alle markieren* setzt alle Haken auf einmal, danach lassen sich einzelne
+  wieder entfernen, etwa nur `.html` und „ohne Endung“ sichtbar lassen. „Ohne Endung“ steht immer oben,
+  dahinter die Endungen nach Zahl der offenen Einträge. Die Auswahl gilt für die Sitzung, bis
+  *Zurücksetzen*.
 
 Scanner-Endungen, die nie in die Liste sollen, schließt die Konfiguration aus (`config/config.yaml`):
 

@@ -11,7 +11,7 @@ $GLOBALS['TL_LANG']['tl_gozi_redirect']['pfad'] = ['Old address', 'The path with
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['host'] = ['Host', 'For this host only, e.g. "de.pons.com". Leave empty to apply on all hosts.'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['zielTyp'] = ['Type of target', 'A page in the page tree, any address, or no target at all (410 Gone).'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['zielSeite'] = ['Target page', 'The page to redirect to — in any page tree.'];
-$GLOBALS['TL_LANG']['tl_gozi_redirect']['zielUrl'] = ['Target address', 'Full address including http(s)://.'];
+$GLOBALS['TL_LANG']['tl_gozi_redirect']['zielUrl'] = ['Target address', 'Full address including http(s)://, or pick a page, file, news item or event of this installation with the picker icon. The pick is stored as a reference, so the redirect still works after the target is renamed.'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['code'] = ['Type of redirect', '301 tells search engines the address has moved permanently. 302/303/307 are temporary.'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['hinweis'] = ['Note', 'Why this redirect was created — visible to editors only.'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['aktiv'] = ['Active', 'Only active redirects apply.'];
@@ -20,7 +20,7 @@ $GLOBALS['TL_LANG']['tl_gozi_redirect']['letzter'] = ['Last hit', 'When the redi
 
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['zielTypen'] = [
     'seite' => 'Page in the page tree',
-    'url' => 'Any address',
+    'url' => 'Address, file, news or event',
     'gone' => 'No target (410 Gone)',
 ];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['codes'] = [

@@ -13,11 +13,11 @@ $GLOBALS['TL_LANG']['tl_gozi_404']['ziel_legend'] = 'Redirect to';
 $GLOBALS['TL_LANG']['tl_gozi_404']['quelle_legend'] = 'The address that ran into nothing';
 $GLOBALS['TL_LANG']['tl_gozi_404']['zielTyp'] = ['Target', 'A page of this installation, any address (including a foreign server), or no target at all.'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['zielSeite'] = ['Page', 'The address is added to this page as an old alias (field "Redirects to this page"), together with all other old addresses of that page.'];
-$GLOBALS['TL_LANG']['tl_gozi_404']['zielUrl'] = ['Target address', 'Full address including http(s)://. An alias can only point to a page of this installation — for a foreign address an entry under "Redirects" is created in the background.'];
+$GLOBALS['TL_LANG']['tl_gozi_404']['zielUrl'] = ['Target address', 'Full address including http(s)://, or pick a page, file, news item or event of this installation with the picker icon. An alias can only point to a page of this installation — for a foreign address an entry under "Redirects" is created in the background.'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['code'] = ['Type of redirect', '301 tells search engines the address has moved permanently. 302/303/307 are temporary.'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['zielTypen'] = [
     'seite' => 'Page in this system',
-    'url' => 'Any address (external)',
+    'url' => 'Address, file, news or event',
     'gone' => 'No target (410 Gone)',
 ];
 $GLOBALS['TL_LANG']['tl_gozi_404']['uebersicht'] = ['Overview', ''];
@@ -35,3 +35,5 @@ $GLOBALS['TL_LANG']['tl_gozi_404']['delete'] = ['Delete', 'Delete entry ID %s'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['endung'] = ['Extension', 'File extension of the requested address (.html, .php …), empty without one. Entries before 2026-11-04 have no extension for .html: it was stripped on saving.'];
 $GLOBALS['TL_LANG']['tl_gozi_404']['endungenAus'] = 'Hide extensions';
 $GLOBALS['TL_LANG']['tl_gozi_404']['ohneEndung'] = 'no extension';
+$GLOBALS['TL_LANG']['tl_gozi_404']['endungen'] = ['' => '(no extension)'];
+$GLOBALS['TL_LANG']['tl_gozi_404']['alleMarkieren'] = 'Select all';

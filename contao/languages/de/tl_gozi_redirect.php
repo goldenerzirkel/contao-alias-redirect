@@ -11,7 +11,7 @@ $GLOBALS['TL_LANG']['tl_gozi_redirect']['pfad'] = ['Alte Adresse', 'Der Pfad ohn
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['host'] = ['Domain', 'Nur für diese Domain, z. B. „de.pons.com". Leer lassen, wenn die Weiterleitung auf allen Domains gelten soll.'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['zielTyp'] = ['Art des Ziels', 'Eine Seite im Seitenbaum, eine beliebige Adresse oder gar kein Ziel (410 Gone).'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['zielSeite'] = ['Zielseite', 'Die Seite, auf die weitergeleitet wird — auch in einem anderen Seitenbaum.'];
-$GLOBALS['TL_LANG']['tl_gozi_redirect']['zielUrl'] = ['Zieladresse', 'Vollständige Adresse mit http(s)://.'];
+$GLOBALS['TL_LANG']['tl_gozi_redirect']['zielUrl'] = ['Zieladresse', 'Vollständige Adresse mit http(s)://, oder über das Auswahlsymbol eine Seite, Datei, Nachricht oder einen Termin dieser Installation. Die Auswahl bleibt als Verweis gespeichert: benennt jemand das Ziel um, stimmt die Weiterleitung trotzdem.'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['code'] = ['Art der Weiterleitung', '301 sagt Suchmaschinen, dass die Adresse dauerhaft umgezogen ist. 302/303/307 sind vorübergehend.'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['hinweis'] = ['Notiz', 'Wozu diese Weiterleitung angelegt wurde — nur für die Redaktion sichtbar.'];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['aktiv'] = ['Aktiv', 'Nur aktive Weiterleitungen greifen.'];
@@ -20,7 +20,7 @@ $GLOBALS['TL_LANG']['tl_gozi_redirect']['letzter'] = ['Zuletzt', 'Wann die Weite
 
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['zielTypen'] = [
     'seite' => 'Seite im Seitenbaum',
-    'url' => 'Beliebige Adresse',
+    'url' => 'Adresse, Datei, Nachricht oder Termin',
     'gone' => 'Kein Ziel (410 Gone)',
 ];
 $GLOBALS['TL_LANG']['tl_gozi_redirect']['codes'] = [
