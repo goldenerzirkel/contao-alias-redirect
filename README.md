@@ -24,7 +24,7 @@ Suchmaschinen übernehmen damit die Bewertung der alten Adresse auf die neue.
 ## So arbeiten Redakteure damit
 
 1. Seite öffnen, Alias ändern, speichern. Fertig. Der alte Alias steht jetzt im Feld
-   **Weiterleitungen auf diese Seite**.
+   **Weitere Aliase für diese Seite**.
 2. Weitere alte Adressen, etwa von einer früheren Website, lassen sich dort von Hand eintragen.
    Ein Eintrag je Zeile, ohne Schrägstrich am Anfang.
 3. Soll eine Umbenennung ausnahmsweise **keine** Weiterleitung erzeugen, vor dem Speichern den Haken
@@ -36,7 +36,7 @@ Weiterleitungsketten: Alle alten Adressen zeigen direkt auf die aktuelle.
 ## Mehrsprachige Seiten (gozi-i18nl10n)
 
 Eine Übersetzung trägt einen eigenen Alias. Im Sprach-Overlay einer Seite steht hinter dem Seitenpfad
-deshalb dasselbe Feld wie an der Seite selbst: **Weitere Aliase für diese Seite**. Wird der
+deshalb dasselbe Feld wie an der Seite selbst: **Weitere Aliase für diese Übersetzung**. Wird der
 fremdsprachige Alias geändert, kommt der alte automatisch hinein — genau wie bei der Seite.
 
 Die Einträge gelten **nur in ihrer Sprache**: derselbe alte Alias kann in zwei Sprachen zu
@@ -61,7 +61,7 @@ Möglichkeiten:
 
 * **Seite, Nachricht, Termin oder Datei** — der Regelweg. Das Auswahlsymbol öffnet Contaos Link-Auswahl
   mit den Reitern *Seiten*, *Nachrichten*, *Events* und *Dateien*:
-  * eine **Seite** wählen, speichern: die Adresse steht danach im Feld *Weiterleitungen auf diese Seite*
+  * eine **Seite** wählen, speichern: die Adresse steht danach im Feld *Weitere Aliase für diese Seite*
     dieser Seite, zusammen mit allen anderen alten Adressen;
   * eine **Nachricht**, einen **Termin** oder eine **Datei** wählen — etwa für alte Presse-Adressen die
     Pressemitteilung: es entsteht eine Weiterleitung auf diesen Verweis (`{{news_url::5}}`). Sie stimmt
@@ -217,7 +217,7 @@ php bin/console gozi:alias-redirect:pruefen
 
 Administratoren sehen die neuen Felder sofort. Redakteursgruppen brauchen in den
 **Benutzergruppen** unter **Erlaubte Felder → Seiten** die Freigabe für
-**Weiterleitungen auf diese Seite** und **Keine Weiterleitung anlegen**.
+**Weitere Aliase für diese Seite** und **Keine Weiterleitung anlegen**.
 
 ## Häufige Fragen
 
