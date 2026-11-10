@@ -316,7 +316,7 @@ final class NotFoundCallbacks
     {
         $belegt = $this->belegung->wer($alias, $wurzel, $sprache, true, $seitenId);
         if ([] !== $belegt) {
-            throw new \InvalidArgumentException(sprintf($this->belegung->text('seitenpfadBelegt'), $alias, $this->belegung->beschreibe($belegt)));
+            throw new \InvalidArgumentException(sprintf($this->belegung->text('seitenpfadBelegt'), $alias, $this->belegung->beschreibe($belegt, true)));
         }
     }
 

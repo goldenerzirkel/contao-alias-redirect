@@ -69,7 +69,7 @@ final class TranslationAliasListener
                 $liste = Input::post(AliasRedirects::FELD) ?? ($aktuell[AliasRedirects::FELD] ?? null);
                 Input::setPost(AliasRedirects::FELD, $this->redirects->mitAltemAlias($liste, $alt, $neu));
             } else {
-                $this->belegung->melde(sprintf($this->belegung->text('alterAliasBelegt'), $alt, $this->belegung->beschreibe($belegt)));
+                $this->belegung->melde(sprintf($this->belegung->text('alterAliasBelegt'), $alt, $this->belegung->beschreibe($belegt, true)));
             }
         }
 

@@ -84,7 +84,7 @@ final class PageAliasListener
                 $liste = Input::post(AliasRedirects::FELD) ?? ($aktuell[AliasRedirects::FELD] ?? null);
                 Input::setPost(AliasRedirects::FELD, $this->redirects->mitAltemAlias($liste, $alt, $neu));
             } else {
-                $this->belegung->melde(sprintf($this->belegung->text('alterAliasBelegt'), $alt, $this->belegung->beschreibe($belegt)));
+                $this->belegung->melde(sprintf($this->belegung->text('alterAliasBelegt'), $alt, $this->belegung->beschreibe($belegt, true)));
             }
         }
 
@@ -137,7 +137,7 @@ final class PageAliasListener
         // Wie beim Umbenennen: nur ein frei gewordener Alias wird zur Weiterleitung.
         $belegt = $gewechselt ? $this->belegung->wer($vorher, $this->belegung->wurzel($pid), null, true, $pid) : [];
         if ([] !== $belegt) {
-            $this->belegung->melde(sprintf($this->belegung->text('alterAliasBelegt'), $vorher, $this->belegung->beschreibe($belegt)));
+            $this->belegung->melde(sprintf($this->belegung->text('alterAliasBelegt'), $vorher, $this->belegung->beschreibe($belegt, true)));
         } elseif ($gewechselt) {
             $liste = $this->redirects->mitAltemAlias($data[AliasRedirects::FELD] ?? null, $vorher, $neu);
             $this->db->update('tl_page', [AliasRedirects::FELD => serialize($liste), 'tstamp' => time()], ['id' => $pid]);

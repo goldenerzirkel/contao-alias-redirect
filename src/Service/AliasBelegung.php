@@ -6,6 +6,7 @@ namespace Gozi\AliasRedirectBundle\Service;
 
 use Contao\Message;
 use Doctrine\DBAL\Connection;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * WER TRAEGT DIESE ADRESSE? — Seitenpfade und Weiterleitungen eines Baums an einer Stelle.
@@ -48,6 +49,7 @@ final class AliasBelegung
     public function __construct(
         private readonly Connection $db,
         private readonly AliasRedirects $redirects,
+        private readonly ?UrlGeneratorInterface $router = null,
     ) {
     }
 
@@ -99,7 +101,7 @@ final class AliasBelegung
         if ([] === $belegt) {
             return;
         }
-        $meldung = sprintf($this->text('seitenpfadBelegt'), trim($alias, '/'), $this->beschreibe($belegt));
+        $meldung = sprintf($this->text('seitenpfadBelegt'), htmlspecialchars(trim($alias, '/')), $this->beschreibe($belegt, true));
         if ($geaendert) {
             throw new \RuntimeException($meldung);
         }
@@ -135,7 +137,7 @@ final class AliasBelegung
         foreach ($liste as $alias) {
             $belegt = $this->wer($alias, $wurzel, $sprache, true, $seite);
             if ([] !== $belegt) {
-                $zeile = '„'.$alias.'“: '.$this->beschreibe($belegt);
+                $zeile = '„'.htmlspecialchars($alias).'“: '.$this->beschreibe($belegt, true);
                 \in_array($alias, $bisher, true) ? $alt[] = $zeile : $neu[] = $zeile;
             }
         }
@@ -208,9 +210,15 @@ final class AliasBelegung
      * Fundstellen als Text, so wie sie am Feld und auf der Kommandozeile erscheinen:
      * Seite 1445 „Barrierefreiheit“ (DE, Weiterleitung, unveröffentlicht); Seite 1244 …
      *
+     * Mit $html (Backend: Feldfehler und Meldungen, beide gibt Contao ungefiltert aus) wird jede
+     * Fundstelle ein Link auf die Bearbeitung der Seite, in einem neuen Tab -- die Maske, in der die
+     * Meldung steht, bleibt offen. Kai am 10.11.2026: „bitte die seite 183 verlinken und in einem
+     * neuen tab öffnen". act=edit braucht kein Token (DC_Table.php:144). Ohne $html (Kommandozeile)
+     * reiner Text.
+     *
      * @param list<array{art:string, seite:int, titel:string, sprache:?string, veroeffentlicht:bool}> $verwendungen
      */
-    public function beschreibe(array $verwendungen): string
+    public function beschreibe(array $verwendungen, bool $html = false): string
     {
         $t = static fn (string $k, string $vorgabe): string => (string) ($GLOBALS['TL_LANG']['MSC']['gozi_belegung'][$k] ?? $vorgabe);
         $teile = [];
@@ -222,10 +230,29 @@ final class AliasBelegung
             if (!$v['veroeffentlicht']) {
                 $merkmale[] = $t('unveroeffentlicht', 'unveröffentlicht');
             }
-            $teile[] = sprintf($t('seite', 'Seite %d „%s“ (%s)'), $v['seite'], $v['titel'], implode(', ', $merkmale));
+            if (!$html) {
+                $teile[] = sprintf($t('seite', 'Seite %d „%s“ (%s)'), $v['seite'], $v['titel'], implode(', ', $merkmale));
+                continue;
+            }
+            $text = sprintf($t('seite', 'Seite %d „%s“ (%s)'), $v['seite'], htmlspecialchars($v['titel']), htmlspecialchars(implode(', ', $merkmale)));
+            $url = $this->bearbeiten($v['seite']);
+            $teile[] = null === $url ? $text : sprintf('<a href="%s" target="_blank" rel="noopener">%s</a>', htmlspecialchars($url), $text);
         }
 
         return implode('; ', $teile);
+    }
+
+    /** Backend-Adresse zum Bearbeiten der Seite; null ohne Router (Suite, Kommandozeile). */
+    private function bearbeiten(int $seite): ?string
+    {
+        if (null === $this->router || $seite < 1) {
+            return null;
+        }
+        try {
+            return $this->router->generate('contao_backend', ['do' => 'page', 'act' => 'edit', 'id' => $seite]);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**
