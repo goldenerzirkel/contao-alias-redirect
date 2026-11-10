@@ -236,7 +236,9 @@ final class AliasBelegung
             }
             $text = sprintf($t('seite', 'Seite %d „%s“ (%s)'), $v['seite'], htmlspecialchars($v['titel']), htmlspecialchars(implode(', ', $merkmale)));
             $url = $this->bearbeiten($v['seite']);
-            $teile[] = null === $url ? $text : sprintf('<a href="%s" target="_blank" rel="noopener">%s</a>', htmlspecialchars($url), $text);
+            // font-size: inherit -- Contaos Backend-CSS setzt `.widget * { font-size: .875rem }`, der Link
+            // stand damit groesser (14 px) als der Fehlertext (p.tl_error, 12 px). Gemessen 10.11.2026.
+            $teile[] = null === $url ? $text : sprintf('<a href="%s" target="_blank" rel="noopener" style="font-size: inherit">%s</a>', htmlspecialchars($url), $text);
         }
 
         return implode('; ', $teile);
