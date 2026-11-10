@@ -36,7 +36,7 @@ Weiterleitungsketten: Alle alten Adressen zeigen direkt auf die aktuelle.
 ## Mehrsprachige Seiten (gozi-i18nl10n)
 
 Eine Übersetzung trägt einen eigenen Alias. Im Sprach-Overlay einer Seite steht hinter dem Seitenpfad
-deshalb dasselbe Feld wie an der Seite selbst: **Weiterleitungen auf diese Übersetzung**. Wird der
+deshalb dasselbe Feld wie an der Seite selbst: **Weitere Aliase für diese Seite**. Wird der
 fremdsprachige Alias geändert, kommt der alte automatisch hinein — genau wie bei der Seite.
 
 Die Einträge gelten **nur in ihrer Sprache**: derselbe alte Alias kann in zwei Sprachen zu
