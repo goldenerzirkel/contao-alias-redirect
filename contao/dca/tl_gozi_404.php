@@ -63,7 +63,9 @@ $GLOBALS['TL_DCA']['tl_gozi_404'] = [
                 'href' => 'act=toggle&amp;field=erledigt',
                 'icon' => 'visible.svg',
             ],
-            'show' => [],
+            // Nur als NAME eintragen: dann füllt Contaos DefaultOperationsListener href/icon/Rechte auf.
+            // 'show' => [] blieb ein leeres Array ohne icon → „Undefined array key "icon"“ im Debug-Modus.
+            'show',
             'delete' => [
                 'href' => 'act=delete',
                 'icon' => 'delete.svg',

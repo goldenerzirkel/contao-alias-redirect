@@ -57,7 +57,8 @@ $GLOBALS['TL_DCA']['tl_gozi_redirect'] = [
                 'href' => 'act=toggle&amp;field=aktiv',
                 'icon' => 'visible.svg',
             ],
-            'show' => [],
+            // Nur als NAME: Contao füllt href/icon/Rechte auf ('show' => [] hätte kein icon).
+            'show',
             'delete' => [
                 'href' => 'act=delete',
                 'icon' => 'delete.svg',
